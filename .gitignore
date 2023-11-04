@@ -1,0 +1,7 @@
+data/*
+mc_loop
+__pycache__
+temp*
+target
+images
+scripts
