@@ -1,6 +1,5 @@
 from .gmt_make_data import area_clip, make_topos, tomo_grid
 from .plot_area import (
-    lines_generator,
     plot_area_map,
     plot_evt_sites,
     plot_misfit,

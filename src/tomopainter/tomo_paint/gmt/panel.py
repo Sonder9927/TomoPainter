@@ -13,10 +13,14 @@ def make_testcpt(ccrust: str, clithos, **kwargs):
 
 def vpanel_makecpt(ccrust: str, clithos, cVave):
     # crust
-    makecpt([3.2, 4, 0.1], ccrust, cmap="jet", reverse=True)  # , cmap="gridvel_6_v3.cpt")
+    makecpt(
+        [3.2, 4, 0.1], ccrust, cmap="jet", reverse=True
+    )  # , cmap="gridvel_6_v3.cpt")
     # lithos
     # makecpt([4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, cpt="cbcRdYlBu.cpt")
-    makecpt([4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, cmap="jet", reverse=True)
+    makecpt(
+        [4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, cmap="jet", reverse=True
+    )
     # cpt="gridvel_6_v3.cpt",
     # 60/80km
     # ave
@@ -24,7 +28,7 @@ def vpanel_makecpt(ccrust: str, clithos, cVave):
 
 
 def vpanel_clip_data(grid, border, region):
-    from tomo.rose import points_inner
+    from tomopainter.rose import points_inner
 
     # read grid data and cut into parts
     data: pd.DataFrame = pygmt.grd2xyz(grid=grid)  # pyright: ignore
@@ -35,9 +39,9 @@ def vpanel_clip_data(grid, border, region):
     # make clip boundary
     df1 = pd.DataFrame({"x": [region[0]], "y": [region[-1]]})
     df2 = pd.DataFrame({"x": [region[1]], "y": [region[-1]]})
-    boundary = pd.concat([df1, border, df2], ignore_index=True)
+    df_border = pd.concat([df1, border, df2], ignore_index=True)
     # clip
-    data_inner = points_inner(data_around, boundary=boundary.to_numpy())
+    data_inner = points_inner(data_around, df_border)
     # concat data
     data_upon = pd.concat([data_upon, data_inner], ignore_index=True)
     data_upon = data_upon.sort_values(by=["x", "y"]).reset_index(drop=True)

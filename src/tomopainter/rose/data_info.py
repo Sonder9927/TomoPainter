@@ -10,8 +10,6 @@ from .grid import GridPhv
 
 # from .points import points_boundary, points_inner
 
-# from tpwt_r import Point
-
 
 def read_xyz(file: Path) -> pd.DataFrame:
     return pd.read_csv(

@@ -8,7 +8,7 @@ def paint():
 
     # pr.profiles()
 
-    pr.map("model")
+    pr.plot("profiles")
     # pr.dispersion()
 
 

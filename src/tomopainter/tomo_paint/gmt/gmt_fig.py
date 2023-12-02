@@ -38,14 +38,14 @@ def fig_tomos(fig, topo, tomos, frame=None, **kwargs):
 
 
 def fig_tect_and_sta(fig, tect, sta):
-    # stations and China_tectonic
-    # lines
-    geo_data = ["China_tectonic.dat", "CN-faults.gmt", "find.gmt"]
     fig.coast(shorelines="1/0.5p,black")
+    # China_tectonic
+    geo_data = ["China_tectonic.dat", "CN-faults.gmt", "find.gmt"]
     tect_pens = ["1p,black,-", "0.5p,black,-"]
     fig.plot(data=f"data/txt/tects/{geo_data[tect]}", pen=tect_pens[0])
     fig.plot(data="data/txt/tects/small_faults.gmt", pen=tect_pens[1])
     # fig.plot(data="data/txt/tects/small_faults_finding.gmt", pen="red,-")
+    # stations
     if sta is not None:
         fig.plot(data=sta, style="t0.1c", fill="darkblue")
     return fig

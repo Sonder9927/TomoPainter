@@ -5,7 +5,7 @@ import operator
 import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull
-# from tpwt_r import Point  # pyright: ignore
+from shapely.geometry import Point, Polygon
 import xarray as xr
 
 
@@ -80,6 +80,15 @@ def points_boundary(data: pd.DataFrame, region=None, clock=False):
         points = clock_sorted(points)
 
     return points
+
+
+def points_inner(data, border):
+    points = border[["x", "y"]].values
+    hull = ConvexHull(points)
+    polygon = Polygon(points[hull.vertices])
+    ids = data.apply(lambda r: Point(r["x"], r["y"]).within(polygon), axis=1)
+
+    return data[ids]
 
 
 # def points_inner(data: pd.DataFrame, boundary) -> pd.DataFrame:

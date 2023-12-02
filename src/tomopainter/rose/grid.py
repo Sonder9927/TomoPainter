@@ -1,5 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor
-import json
+# import json
 from pathlib import Path
 
 import pandas as pd
@@ -42,7 +42,7 @@ class GridVs:
         self.depths = self.vs["z"].unique().tolist()
         self.ml = pd.read_csv(ml_file)
         self.ddp = Path("temp/depths_data")
-        self.linetypes = ["arise", "decline", "xline", "yline"]
+        # self.linetypes = ["arise", "decline", "xline", "yline"]
         self.profile = Path("data/txt/profile.json")
         self._init_data()
 
@@ -114,16 +114,17 @@ class GridVs:
 
     # create data of per depth
     def _init_data(self):
-        from tomopainter.tomo_paint.gmt import lines_generator
+        from tomopainter.rose import init_profiles
 
         # init profile lines into json file
         if not self.profile.exists():
-            lls = {"x": [], "y": []}
-            for lt in self.linetypes:
-                for idt, ll in lines_generator(self.hregion, lt):
-                    lls[idt].append(ll)
-            with self.profile.open("w", encoding="utf-8") as f:
-                json.dump(lls, f)
+            init_profiles(self.hregion, self.profile)
+            # lls = {"x": [], "y": []}
+            # for lt in self.linetypes:
+            #     for idt, ll in lines_generator(self.hregion, lt):
+            #         lls[idt].append(ll)
+            # with self.profile.open("w", encoding="utf-8") as f:
+            #     json.dump(lls, f)
         # init grid of per depth
         if self.ddp.exists():
             return

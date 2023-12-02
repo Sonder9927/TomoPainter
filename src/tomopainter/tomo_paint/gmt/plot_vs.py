@@ -61,7 +61,7 @@ def vpanel_cpttest(
 
 # plot v plane
 def plot_vs_vpanel(
-    vs, *, idt, moho, line, path, hregion, fname, lab=None, dep=-200, ave=False
+    vs, *, idt, moho, line, path, hregion, dep, fname, lab=None, ave=False
 ):
     """
     gmt plot vplane of vs contain abso and ave.
