@@ -4,13 +4,23 @@ import pygmt
 from .gmt_make_data import makecpt
 
 
+def make_testcpt(ccrust: str, clithos, **kwargs):
+    # crust
+    makecpt([3.2, 4, 0.1], ccrust, cmap="seis")
+    # lithos
+    makecpt([4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, **kwargs)
+
+
 def vpanel_makecpt(ccrust: str, clithos, cVave):
     # crust
-    makecpt([3, 4, 0.05], ccrust)
+    makecpt([3.2, 4, 0.1], ccrust, cmap="jet", reverse=True)  # , cmap="gridvel_6_v3.cpt")
     # lithos
-    makecpt([4.32 - 0.15, 4.32 + 0.2, 0.01], clithos)
+    # makecpt([4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, cpt="cbcRdYlBu.cpt")
+    makecpt([4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, cmap="jet", reverse=True)
+    # cpt="gridvel_6_v3.cpt",
+    # 60/80km
     # ave
-    makecpt([-4, 4, 0.05], cVave)
+    makecpt([-4, 4, 0.05], cVave, cmap="jet", reverse=True)
 
 
 def vpanel_clip_data(grid, border, region):

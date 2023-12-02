@@ -7,7 +7,6 @@ from .gmt import (
     plot_area_map,
     plot_evt_sites,
     plot_rays,
-    plot_misfit,
     plot_model,
 )
 
@@ -37,6 +36,8 @@ class AreaPainter:
         plot_rays(self.regions, rays, self._fig("rays_cover.png"))
 
     def _fig(self, fn) -> str:
+        if not self.figs.exists():
+            self.figs.mkdir(parents=True)
         return str(self.figs / fn)
 
 
@@ -54,12 +55,6 @@ def gmt_plot_area(region, pesf, onlymap=True):
     sites = rays[["evt"]].drop_duplicates()
     plot_evt_sites(sites, region, str(ip / "evt_sites.png"))
     plot_rays([vicinity, region], rays, str(ip / "rays_cover.png"))
-
-
-def gmt_plot_misfit(mm_file, region):
-    grid = pd.read_csv(mm_file)[["x", "y", "misfit"]]
-    grid.rename(columns={"misfit": "z"}, inplace=True)
-    plot_misfit(grid, region, "images/mc_figs/misfit.png")
 
 
 def _plot_per_evt(data: dict, fn):

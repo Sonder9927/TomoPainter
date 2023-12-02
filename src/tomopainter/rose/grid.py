@@ -1,10 +1,9 @@
+from concurrent.futures import ProcessPoolExecutor
 import json
 from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor
 
 import pandas as pd
 import pygmt
-from tomo.tomo_paint.gmt import area_clip, lines_generator, tomo_grid
 
 
 class GridPhv:
@@ -12,26 +11,34 @@ class GridPhv:
         self.period = int(period)
         self.series = series
         self.grids = Path("data/grids")
+        self.images = Path("images")
 
-    def grid_file(self, method, identifier, dcheck=None) -> Path | None:
-        idt = _check_identifier(identifier)
+    def grid_file(self, method, idt, dcheck=None) -> Path:
         gsp = self.grids / f"{method}_grids"
         if idt == "cb":
             gsp = gsp / f"dcheck_{dcheck}"
         return gsp / f"{method}_{idt}_{self.period}.grid"
 
-    def fig_name(self, method, identifier: str) -> str:
-        idt = _check_identifier(identifier)
-        return f"images/{method}_figs/{method}_{idt.lower()}_{self.period}.png"
+    def fig_name(self, method, idt: str) -> Path:
+        tp = self._mkdir(f"{method}_figs/{idt}_figs")
+        return tp / f"{method}_{idt.lower()}_{self.period}.png"
 
     def diff_name(self):
-        return f"images/diff_figs/diff_{self.period}.png"
+        tp = self._mkdir("diff_figs")
+        return tp / f"diff_{self.period}.png"
+
+    def _mkdir(self, target):
+        tp = self.images / target
+        if not tp.exists():
+            tp.mkdir(parents=True)
+        return tp
 
 
 class GridVs:
-    def __init__(self, hregion, vs_file, ml_file) -> None:
+    def __init__(self, hregion, vs_data, ml_file) -> None:
         self.hregion = hregion
-        self.vs = pd.read_csv(vs_file)
+        # self.vs = pd.read_csv(vs_file)
+        self.vs = vs_data
         self.depths = self.vs["z"].unique().tolist()
         self.ml = pd.read_csv(ml_file)
         self.ddp = Path("temp/depths_data")
@@ -89,6 +96,8 @@ class GridVs:
 
     # pick moho data of grid where is on the path
     def track_border(self, idt, path: pd.DataFrame):
+        from tomopainter.tomo_paint.gmt import tomo_grid
+
         temp_grd = r"temp/temp.grd"
         data = self.ml[["x", "y", idt]]
         # tomo_grid_data(data, temp_grd, self.hregion, surface=0.25)
@@ -105,6 +114,8 @@ class GridVs:
 
     # create data of per depth
     def _init_data(self):
+        from tomopainter.tomo_paint.gmt import lines_generator
+
         # init profile lines into json file
         if not self.profile.exists():
             lls = {"x": [], "y": []}
@@ -126,27 +137,24 @@ class GridVs:
 
 
 def _depth_grid(data, ddp: Path, dep, region):
+    from tomopainter.tomo_paint.gmt import area_clip
+
     fn = str(ddp / f"pre{dep}_vel.grd")
-    _image_ang_track(fn, data, region)
+    _for_image_and_track(fn, data, region)
     # ave data
     df_clip = area_clip(data)
     mean_value = df_clip["z"].mean()
     data["z"] = (data["z"] - mean_value) / mean_value * 100
     fn = str(ddp / f"pre{dep}_ave.grd")
-    _image_ang_track(fn, data, region)
+    _for_image_and_track(fn, data, region)
 
 
-def _image_ang_track(fn, data, region):
+def _for_image_and_track(fn, data, region):
+    from tomopainter.tomo_paint.gmt import tomo_grid
+
     # grid for hpanel grdimage
     tomo_grid(data, region, fn.replace("pre", "tomo"))
     # grid surface for track
     ff = fn.replace("pre", "sf")
     pygmt.surface(data=data, region=region, spacing=0.5, outgrid=ff)
     # pygmt.grdsample(grid=ff, region=region, spacing=0.1, outgrid=ff)
-
-
-def _check_identifier(identifier: str) -> str:
-    ids = {"vel", "cb", "std", "as"}
-    if (idt := identifier.lower()) not in ids:
-        raise KeyError(f"identifier: {identifier}")
-    return idt

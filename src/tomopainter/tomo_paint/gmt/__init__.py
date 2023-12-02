@@ -10,10 +10,11 @@ from .plot_area import (
 from .plot_dc import plot_dispersion_curve
 from .plot_diff import plot_diff
 from .plot_vel import plot_as, plot_vel
-from .plot_vs import plot_vs_hpanel, plot_vs_vpanel
+from .plot_vs import plot_vs_hpanel, plot_vs_vpanel, vpanel_cpttest
 
 
 __all__ = [
+    "vpanel_cpttest",
     "plot_diff",
     "plot_vel",
     "plot_as",

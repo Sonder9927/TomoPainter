@@ -10,7 +10,7 @@
 #     "AreaPainter",
 #     "PhasePainter",
 # ]
-from .tomo_paint import TomoPainter
-from .tomo_show import make_ppt
+from tomopainter.tomo_paint import TomoPainter
+from tomopainter.tomo_show import make_ppt
 
 __all__ = ["TomoPainter", "make_ppt"]

@@ -1,0 +1,31 @@
+[project]
+name = "tomopainter"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Sonder Merak", email = "merak19981999@gmail.com" }
+]
+dependencies = [
+    "pygmt>=0.9.0",
+    "icecream>=2.1.3",
+    "pandas>=2.0.3",
+    "numpy>=1.24.4",
+    "scipy>=1.10.1",
+    "matplotlib>=3.7.4",
+    "shapely>=2.0.2",
+    "tqdm>=4.66.1",
+    "python-pptx>=0.6.23",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true

@@ -7,7 +7,8 @@ import pandas as pd
 import pygmt
 
 from .grid import GridPhv
-from .points import points_boundary, points_inner
+
+# from .points import points_boundary, points_inner
 
 # from tpwt_r import Point
 
@@ -18,28 +19,27 @@ def read_xyz(file: Path) -> pd.DataFrame:
     )
 
 
-def vel_info_per(data_file: Path, points: list) -> dict:
-    data = read_xyz(data_file)
-    data_inner = points_inner(data, points)
+# def vel_info_per(data_file: Path, points: list) -> dict:
+#     data = read_xyz(data_file)
+#     data_inner = points_inner(data, points)
 
-    # sourcery skip: inline-immediately-returned-variable
-    grid_per = {
-        "vel_avg": data_inner.z.mean(),
-        "vel_max": data_inner.z.max(),
-        "vel_min": data_inner.z.min()
-        # "inner_num": len(data_inner.index)
-    }
+#     # sourcery skip: inline-immediately-returned-variable
+#     grid_per = {
+#         "vel_avg": data_inner.z.mean(),
+#         "vel_max": data_inner.z.max(),
+#         "vel_min": data_inner.z.min()
+#         # "inner_num": len(data_inner.index)
+#     }
 
-    return grid_per
+#     return grid_per
 
 
 def standard_deviation_per(ant: Path, tpwt: Path, region, stas) -> float:
-    from src.pygmt_plot.gmt import gmt_blockmean_surface_grdsample
+    from tomopainter.tomo_paint.gmt import tomo_grid
 
     temp = "temp/temp.grd"
-    gmt_blockmean_surface_grdsample(ant, temp, temp, region)
-    ant_xyz = pygmt.grd2xyz(temp)
-    gmt_blockmean_surface_grdsample(tpwt, temp, temp, region)
+    ant_xyz = tomo_grid(ant, region, temp)
+    tpwt_xyz = tomo_grid(tpwt, region, temp)
     tpwt_xyz = pygmt.grd2xyz(temp)
     if ant_xyz is None or tpwt_xyz is None:
         raise ValueError(
@@ -55,9 +55,9 @@ def standard_deviation_per(ant: Path, tpwt: Path, region, stas) -> float:
     diff = tpwt_xyz
     diff["z"] = (tpwt_xyz["z"] - ant_xyz["z"]) * 1000  # 0.5 X 0.5 grid
 
-    boundary = points_boundary(stas)
-    data_inner = points_inner(diff, boundary=boundary)
-    std = data_inner.z.std(ddof=0)
+    # boundary = points_boundary(stas)
+    # data_inner = points_inner(diff, boundary=boundary)
+    std = diff.z.std(ddof=0)
 
     return std
 
@@ -106,9 +106,8 @@ def vel_info(target: str, periods=None):
         json.dump(jsd, f)
 
 
-def calc_lab(vs, mm, mlf, limits: list):
-    data = vs.merge(mm[["x", "y", "moho"]], on=["x", "y"], how="left")
-    data["moho"] = -data["moho"]
+def calc_lab(vs, moho, mlf, limits: list):
+    data = vs.merge(moho, on=["x", "y"], how="left")
     df = data[(data["z"] < limits[0]) & (data["z"] > limits[1])]
     dt = df.groupby(["x", "y"], group_keys=False).apply(_gradient)
     result = (

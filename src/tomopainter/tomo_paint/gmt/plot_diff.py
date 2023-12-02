@@ -2,24 +2,15 @@
 # Version: 0.2
 # Description: plot diff between tpwt and ant results.
 
-from pathlib import Path
 
 import pandas as pd
 import pygmt
 
 from .gmt_fig import fig_tomos
-from .gmt_make_data import diff_make, make_topos, area_clip
+from .gmt_make_data import area_clip, diff_make, make_topos
 
 
-def gmt_plot_diff(diff: pd.DataFrame, grds, region, cpt, fname):
-    sta = pd.read_csv(
-        "data/station.lst",
-        usecols=[1, 2],
-        names=["x", "y"],
-        header=None,
-        delim_whitespace=True,
-    )
-
+def gmt_plot_diff(diff: pd.DataFrame, grds, region, cpt, fname, eles):
     topo = make_topos("ETOPO1", region)
     diff = area_clip(diff)["z"]
     # gmt plot
@@ -31,7 +22,7 @@ def gmt_plot_diff(diff: pd.DataFrame, grds, region, cpt, fname):
         MAP_DEGREE_SYMBOL="none",
         FONT_TITLE="18",
     )
-    per = Path(fname).stem.split("_")[-1]
+    per = fname.stem.split("_")[-1]
     with fig.subplot(
         nrows=2,
         ncols=2,
@@ -40,7 +31,8 @@ def gmt_plot_diff(diff: pd.DataFrame, grds, region, cpt, fname):
         margins="0.5c/0.3c",
         title=f"{per}s deference",
     ):
-        kws = {"tect": 0, "sta": sta, "projection": "M?", "clip": True}
+        kws = {"projection": "M?"}
+        kws |= eles
         # ant
         with fig.set_panel(panel=0):
             tomo = {"grid": grds["ant"], "cmap": cpt}
@@ -112,10 +104,10 @@ def gmt_plot_diff(diff: pd.DataFrame, grds, region, cpt, fname):
     # vel colorbar
     # fig.shift_origin(yshift="9c")
     # fig.colorbar(cmap=cpt, position="jBC+w8c/0.4c+o0c/-1.5c+m", frame="xa")
-    fig.savefig(fname)
+    fig.savefig(str(fname))
 
 
-def plot_diff(grid_ant, grid_tpwt, region, fig_name):
+def plot_diff(grid_ant, grid_tpwt, region, fig_name, eles):
     # cpt file
     cpt = "temp/tomo.cpt"
     # grd file
@@ -126,4 +118,4 @@ def plot_diff(grid_ant, grid_tpwt, region, fig_name):
     }
 
     diff = diff_make(grid_ant, grid_tpwt, region, cpt, grds)
-    gmt_plot_diff(diff, grds, region, cpt, fig_name)
+    gmt_plot_diff(diff, grds, region, cpt, fig_name, eles)

@@ -28,9 +28,7 @@ def fig_tomos(fig, topo, tomos, frame=None, **kwargs):
             fig.grdimage(**tomo, **tomo_param)
     # plot tects and stas
     if (tect := kwargs.get("tect")) is not None:
-        fig = fig_tect_and_sta(
-            fig, tect, kwargs.get("sta"), kwargs.get("tect_pen")
-        )
+        fig = fig_tect_and_sta(fig, tect, kwargs.get("sta"))
     # plot lines
     lines = kwargs.get("lines")
     if lines is not None:
@@ -39,15 +37,14 @@ def fig_tomos(fig, topo, tomos, frame=None, **kwargs):
     return fig
 
 
-def fig_tect_and_sta(fig, tect, sta, pen):
+def fig_tect_and_sta(fig, tect, sta):
     # stations and China_tectonic
     # lines
     geo_data = ["China_tectonic.dat", "CN-faults.gmt", "find.gmt"]
     fig.coast(shorelines="1/0.5p,black")
-    if pen is None:
-        pen = ["1p,black,-", "0.5p,black,-"]
-    fig.plot(data=f"data/txt/tects/{geo_data[tect]}", pen=pen[0])
-    fig.plot(data="data/txt/tects/small_faults.gmt", pen=pen[-1])
+    tect_pens = ["1p,black,-", "0.5p,black,-"]
+    fig.plot(data=f"data/txt/tects/{geo_data[tect]}", pen=tect_pens[0])
+    fig.plot(data="data/txt/tects/small_faults.gmt", pen=tect_pens[1])
     # fig.plot(data="data/txt/tects/small_faults_finding.gmt", pen="red,-")
     if sta is not None:
         fig.plot(data=sta, style="t0.1c", fill="darkblue")

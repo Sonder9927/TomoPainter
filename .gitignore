@@ -1,7 +1,11 @@
-data/*
+# temp files
+temp*
+
 mc_loop
 __pycache__
-temp*
 target
 images
+
+# secret
 scripts
+data/*

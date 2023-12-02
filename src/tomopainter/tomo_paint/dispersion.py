@@ -5,7 +5,7 @@ import pandas as pd
 from .gmt import plot_dispersion_curve
 
 
-def gmt_plot_dispersion_curves(mmf):
+def gmt_plot_dispersion_curves(mm):
     """
     plot dispersion curves of tpwt and ant
     """
@@ -18,7 +18,7 @@ def gmt_plot_dispersion_curves(mmf):
     merged_ant = merge_periods_data(gp, "ant", "vel")
     merged_tpwt = merge_periods_data(gp, "tpwt", "vel")
     merged_data = pd.merge(merged_ant, merged_tpwt, on=["x", "y"], how="left")
-    mm = pd.read_csv(mmf)
+    # merge misfit by mcmc for text
     misfit = mm[["x", "y", "misfit"]]
     merged_data = pd.merge(merged_data, misfit, on=["x", "y"], how="left")
     # # clip

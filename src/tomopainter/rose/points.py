@@ -5,12 +5,12 @@ import operator
 import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull
-from tpwt_r import Point  # pyright: ignore
+# from tpwt_r import Point  # pyright: ignore
 import xarray as xr
 
 
-def area_hull_files(region, txt) -> None:
-    sta_file = txt / "station.lst"
+def area_hull_files(region, outdir) -> None:
+    sta_file = "data/station.lst"
     sta = pd.read_csv(
         sta_file, delim_whitespace=True, usecols=[1, 2], names=["x", "y"]
     )
@@ -20,7 +20,7 @@ def area_hull_files(region, txt) -> None:
     hull = ConvexHull(points)
     hull_points = points[hull.vertices]
     df = pd.DataFrame(hull_points, columns=["x", "y"])
-    df.to_csv(txt / "area_hull.csv", index=False)
+    df.to_csv(outdir / "area_hull.csv", index=False)
     ds = xr.Dataset(
         {"x_values": ("points", df["x"]), "y_values": ("points", df["y"])},
         coords={
@@ -28,21 +28,21 @@ def area_hull_files(region, txt) -> None:
             "y_coords": ("points", df["y"]),
         },
     )
-    ds.to_netcdf(txt / "area_hull.nc")
+    ds.to_netcdf(outdir / "area_hull.nc")
 
 
 ###############################################################################
 
 
-def times_of_crossing_boundary(point: Point, points: list[Point]) -> int:
-    times = 0
-    for i in range(len(points)):
-        segment_start = points[i]
-        segment_end = points[0] if i == len(points) - 1 else points[i + 1]
-        if point.is_ray_intersects_segment(segment_start, segment_end):
-            times += 1
+# def times_of_crossing_boundary(point: Point, points: list[Point]) -> int:
+#     times = 0
+#     for i in range(len(points)):
+#         segment_start = points[i]
+#         segment_end = points[0] if i == len(points) - 1 else points[i + 1]
+#         if point.is_ray_intersects_segment(segment_start, segment_end):
+#             times += 1
 
-    return times
+#     return times
 
 
 def clock_sorted(points):
@@ -82,27 +82,27 @@ def points_boundary(data: pd.DataFrame, region=None, clock=False):
     return points
 
 
-def points_inner(data: pd.DataFrame, boundary) -> pd.DataFrame:
-    lo = [i[0] for i in boundary]
-    la = [i[1] for i in boundary]
+# def points_inner(data: pd.DataFrame, boundary) -> pd.DataFrame:
+#     lo = [i[0] for i in boundary]
+#     la = [i[1] for i in boundary]
 
-    points_in_rect = data[
-        (data["y"] < max(la))
-        & (data["y"] > min(la))
-        & (data["x"] < max(lo))
-        & (data["x"] > min(lo))
-    ].copy()
+#     points_in_rect = data[
+#         (data["y"] < max(la))
+#         & (data["y"] > min(la))
+#         & (data["x"] < max(lo))
+#         & (data["x"] > min(lo))
+#     ].copy()
 
-    boundary_points: list[Point] = [Point(p.tolist()) for p in boundary]
+#     boundary_points: list[Point] = [Point(p.tolist()) for p in boundary]
 
-    points_in_rect["times"] = points_in_rect.apply(
-        lambda dd: times_of_crossing_boundary(
-            Point(x=dd.loc["x"], y=dd.loc["y"]), boundary_points
-        ),
-        axis=1,
-    )
-    data = points_in_rect[points_in_rect["times"] % 2 == 1].drop(
-        columns=["times"]
-    )
+#     points_in_rect["times"] = points_in_rect.apply(
+#         lambda dd: times_of_crossing_boundary(
+#             Point(x=dd.loc["x"], y=dd.loc["y"]), boundary_points
+#         ),
+#         axis=1,
+#     )
+#     data = points_in_rect[points_in_rect["times"] % 2 == 1].drop(
+#         columns=["times"]
+#     )
 
-    return data
+#     return data
