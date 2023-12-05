@@ -4,13 +4,6 @@ import pygmt
 from .gmt_make_data import makecpt
 
 
-def make_testcpt(ccrust: str, clithos, **kwargs):
-    # crust
-    makecpt([3.2, 4, 0.1], ccrust, cmap="seis")
-    # lithos
-    makecpt([4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, **kwargs)
-
-
 def vpanel_makecpt(ccrust: str, clithos, cVave):
     # crust
     makecpt(

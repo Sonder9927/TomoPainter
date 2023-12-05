@@ -11,10 +11,14 @@ from .grid import GridPhv
 # from .points import points_boundary, points_inner
 
 
-def read_xyz(file: Path) -> pd.DataFrame:
-    return pd.read_csv(
-        file, delim_whitespace=True, usecols=[0, 1, 2], names=["x", "y", "z"]
-    )
+# def read_xyz(file: Path) -> pd.DataFrame:
+#     return pd.read_csv(
+#         file,
+#         delim_whitespace=True,
+#         usecols=[0, 1, 2],
+#         names=["x", "y", "z"],
+#         header=None,
+#     )
 
 
 # def vel_info_per(data_file: Path, points: list) -> dict:

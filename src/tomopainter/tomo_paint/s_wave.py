@@ -1,7 +1,7 @@
 from tomopainter.rose import GridVs
 from tqdm import tqdm
 
-from .gmt import plot_vs_hpanel, plot_vs_vpanel, plot_misfit, vpanel_cpttest
+from .gmt import plot_vs_hpanel, plot_vs_vpanel, plot_misfit
 
 
 class VsPainter:
@@ -14,16 +14,6 @@ class VsPainter:
     def depths(self, ave, eles, **dps):
         for _, grid, fn in tqdm(self.gv.depths_data("tomo", ave, **dps)):
             plot_vs_hpanel(grid, self.gv.hregion, fn, ave=ave, eles=eles)
-
-    # def profiles_cpttest(self, dep):
-    #     params = {"hregion": self.gv.hregion, "dep": dep}
-    #     idt = "x"
-    #     ll = [[116.4, 32.9], [122.3, 31.0]]
-    #     path, fn = self.gv.init_path(ll, idt)
-    #     params |= zip(["idt", "line", "path", "fname"], [idt, ll, path, fn])
-    #     params |= {"moho": self.gv.track_border("moho", path)}
-    #     params |= {"lab": self.gv.track_border("lab", path)}
-    #     vpanel_cpttest(self.gv.track_vs(path), **params)
 
     def profiles(self, dep=-200, eles=None):
         from tomopainter.rose import idt_profiles

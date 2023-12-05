@@ -7,56 +7,7 @@ import pygmt
 
 from .gmt_fig import fig_tomos
 from .gmt_make_data import make_topos, makecpt, series, tomo_grid
-from .panel import vpanel_clip_data, vpanel_makecpt, make_testcpt
-
-
-def vpanel_cpttest(
-    vs, *, idt, moho, line, path, hregion, fname, lab=None, dep=-200, ave=False
-):
-    """
-    gmt plot vplane of vs contain abso and ave.
-    The abscissa is determined by `idt` which should be x or y.
-    """
-    lregion = _profile_range(idt, line, dep)
-    # topo and borders
-    topo = "ETOPO1"
-    topo_data = f"data/txt/tects/{topo}.grd"
-    topo = make_topos(topo, hregion)
-    borders = _profile_borders(path, topo_data, moho, lab, idt)
-
-    # make cpt files
-    cpts = [f"temp/{c}" for c in ["crust.cpt", "lithos.cpt"]]
-
-    # vs grid
-    grid = vs[[idt, "z", "v"]]
-    grid.columns = ["x", "y", "z"]
-    vs_grd = "temp/temp.grd"
-    tomo_grid(grid, lregion, vs_grd, blockmean=[0.5, 1])
-    tomos = [{"grid": vs_grd, "cmap": cpts[-1]}]
-    # cut tomo_moho from vs_grd
-    data = vpanel_clip_data(vs_grd, borders[1], lregion)
-    # notice the order of grdimage: 1-lithos, 2-crust
-    tomos = [
-        {"grid": vs_grd, "cmap": cpts[1]},
-        {"grid": data, "cmap": cpts[0]},
-    ]
-    ic("Distincted crust data!")
-    title = f"Sv({idt})"
-
-    prefix = fname.split("/")[-1]
-    for cc in Path("data/txt/cptfiles").glob("*.cpt"):
-        cf = cc.name
-        make_testcpt(*cpts, cpt=cf)
-        fname = f"images/{prefix}_{cf[:-4]}.png"
-        gmt_plot_vs_vpanel(
-            topo, tomos, lregion, borders, line, title, fname, ave
-        )
-    for cc in ["haxby", "mag", "no_green", "seis", "turbo", "jet", "panoply"]:
-        make_testcpt(*cpts, cmap=cc)
-        fname = f"images/{prefix}_{cc}.png"
-        gmt_plot_vs_vpanel(
-            topo, tomos, lregion, borders, line, title, fname, ave
-        )
+from .panel import vpanel_clip_data, vpanel_makecpt
 
 
 # plot v plane
@@ -159,18 +110,23 @@ def gmt_plot_vs_vpanel(topo, tomos, lregion, borders, line, title, fn, ave):
         # notice tomos is [lithos, crust]
         fig.colorbar(
             cmap=tomos[1]["cmap"],
-            position="JBC+w3i/0.10i+o0c/-0.5i+h",
-            frame="xa",
+            position="JBC+w2.8i/0.1i+o-1.5i/-0.5i+h",
+            frame="xa+lCrust",
         )
-        fig.shift_origin(yshift="-1")
+        # fig.shift_origin(yshift="-1")
         fig.colorbar(
             cmap=tomos[0]["cmap"],
-            position="JBC+w3i/0.10i+o0c/-0.5i+h",
-            frame="xa",
+            position="JBC+w2.8i/0.1i+o1.5i/-0.5i+h",
+            frame="xa+lMantle",
         )
-    fig.shift_origin(yshift="-4.5", xshift="3")
-    # fig = fig_htopo(fig, topo, [line], "fat,red", tect=1)
-    fig = fig_tomos(fig, topo, [], lines=[line], line_pen="fat,red", tect=0)
+    fig.shift_origin(yshift="-5", xshift="2i")
+    kwgs = {
+        "lines": [line],
+        "line_pen": "fat,red",
+        "tect": 0,
+        "eles": ["basalt", "valcano"],
+    }
+    fig = fig_tomos(fig, topo, [], **kwgs)
 
     fig.savefig(fn)
 

@@ -14,13 +14,12 @@ import pygmt
 
 def makecpt(
     series, output="temp/temp.cpt", cpt="Vc_1.8s.cpt", reverse=False, cmap=None
-):
+) -> str:
     cpts = Path("data/txt/cptfiles")
     cmap = cmap or str(cpts / cpt)
     pygmt.makecpt(
         cmap=cmap,
         series=series,
-        # truncate=[0.05, 0.85],
         output=output,
         continuous=True,
         background=True,
@@ -64,10 +63,9 @@ def make_topos(
     series=None,
 ):
     if series is None:
-        series = [-100, 2000, 200]
+        series = [-300, 1350]
     temp = Path("temp")
     ctopo = str(temp / f"topo_{cmap}.cpt")
-    makecpt(series, ctopo, cmap=cmap)
     # pygmt.makecpt(
     #     cmap=cmap,
     #     series=series,
@@ -77,7 +75,10 @@ def make_topos(
     grd = temp / f"topo_{idt}.grd"
     gra = temp / f"topo_{idt}.gradient"
     topos = dict(
-        zip(["grd", "gra", "cpt", "region"], [grd, gra, ctopo, region])
+        zip(
+            ["grd", "gra", "cpt", "region"],
+            [grd, gra, makecpt(series, ctopo, cmap=cmap), region],
+        )
     )
     if Path(gra).exists():
         return topos

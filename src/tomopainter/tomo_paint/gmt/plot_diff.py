@@ -84,7 +84,7 @@ def gmt_plot_diff(diff: pd.DataFrame, grds, region, cpt, fname, eles):
                 y=30,
                 justify="RT",
                 font="12.5p",
-                text=f"mean={round(diff.mean(),2)}m/s",
+                text=f"mean={round(diff.mean(), 2)}m/s",
                 offset="j0.1",
             )
             fig.text(
@@ -92,7 +92,7 @@ def gmt_plot_diff(diff: pd.DataFrame, grds, region, cpt, fname, eles):
                 y=28,
                 justify="RT",
                 font="12p",
-                text=f"std = {round(diff.std(),2)}m/s",
+                text=f"std = {round(diff.std(), 2)}m/s",
                 offset="j0.1",
             )
             fig.colorbar(
