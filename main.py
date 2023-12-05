@@ -1,4 +1,4 @@
-from tomopainter import TomoPainter, make_ppt
+from tomopainter import TomoPainter
 
 
 def paint():
@@ -7,12 +7,11 @@ def paint():
     # pr.print_info(span=[60,80,200,250])
 
     # pr.profiles()
+    pr.plot("as", periods=[125, 143])
 
     # pr.map("area")
-    pr.plot("profiles")
-    # pr.dispersion()
+    # pr.plot("profiles")
 
 
 if __name__ == "__main__":
     paint()
-    # make_ppt()

@@ -106,7 +106,7 @@ def gmt_plot_as(region, vel, std, fn, eles):
                 frame=["a1f1", 'x+l"TPWT Phase velocity anomaly"', "y+l%"]
             )
         with fig.set_panel(panel=1):
-            makecpt([0, 81], cpt, cmap="hot", reverse=True)
+            makecpt([0, 121], cpt, cmap="hot", reverse=True)
             tomos = [{"grid": std, "cmap": cpt}]
             kws["clip"] = False
             fig = fig_tomos(fig, topo, tomos, **kws)

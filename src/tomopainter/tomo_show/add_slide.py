@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 
 
-def ppt_add_profile(prs, figs, margin, shape):
+def ppt_add_profile(prs, figs, margin, shape, with_ave=False):
     """
     This script can insert probfile with ave.
     Each slide has 2 columns.
@@ -13,9 +13,15 @@ def ppt_add_profile(prs, figs, margin, shape):
     width = util.Cm(width * 0.81)
     height = util.Cm(height * 0.83)
 
-    pfa_figs = [[str(pf),
-                 str(pf.parent / pf.name.replace("vel", "ave"))]
-                for pf in figs.glob("*_vel.png")]
+    if with_ave:
+        couple_figs = [
+            [str(pf), str(pf.parent / pf.name.replace("vel", "ave"))]
+            for pf in figs.glob("*_vel.png")
+        ]
+    else:
+        all_figs = [str(pf) for pf in figs.glob("*_vel.png")]
+        couple_figs = [all_figs[i:i+2] for i in range(0, len(all_figs), 2)]
+
     slide = prs.slides.add_slide(prs.slide_layouts[0])
     title = slide.shapes.title
     title.text = figs.name
@@ -23,17 +29,18 @@ def ppt_add_profile(prs, figs, margin, shape):
     # add pictures
     blank_slide_layout = prs.slide_layouts[6]
     top = util.Cm(top_margin)
-    for pfa in pfa_figs:
+    for couple in couple_figs:
         slide = prs.slides.add_slide(blank_slide_layout)
         # set margin for each fig
         left = util.Cm(left_margin)
 
         # add abs vel fig
-        slide.shapes.add_picture(pfa[0], left, top, width,
-                                 height + util.Cm(0.9))
+        slide.shapes.add_picture(
+            couple[0], left, top, width, height + util.Cm(0.9)
+        )
         left += util.Cm(0.3) + width
         # add ave vel fig
-        slide.shapes.add_picture(pfa[1], left, top, width, height)
+        slide.shapes.add_picture(couple[1], left, top, width, height)
 
     return prs
 

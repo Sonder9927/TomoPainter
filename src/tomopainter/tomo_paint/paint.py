@@ -23,29 +23,28 @@ class TomoPainter:
         self.moho = mm[["x", "y", "moho"]]
         self.mlf = self.txt / "moho_lab.csv"
         self._init_funcs()
-        self.eles = {"tect": 0, "clip": True, "sta": None}
+        self.eles = {"tect": 0, "clip": True}
 
     def plot(self, idt, *args, **kwargs):
-        custom, elements = self._sep_args(kwargs)
-        self.paint_funcs[idt](*args, **custom, eles=elements)
+        self.paint_funcs[idt](*args, **kwargs, eles=self.eles)
 
     def map(self, idt):
         self.paint_funcs[idt]()
 
-    def _sep_args(self, params: dict):
-        eles = {
-            key: self.eles[key] if params.get(key) is None else params.pop(key)
-            for key in self.eles.keys()
-        }
-        if eles["sta"]:  # pyright:ignore
-            eles["sta"] = pd.read_csv(  # pyright:ignore
-                "data/station.lst",
-                usecols=[1, 2],
-                names=["x", "y"],
-                header=None,
-                delim_whitespace=True,
-            )
-        return params, eles
+    # def _sep_args(self, params: dict):
+    #     eles = {
+    #         key: self.eles[key] if params.get(key) is None else params.pop(key)
+    #         for key in self.eles.keys()
+    #     }
+    #     if eles["sta"]:  # pyright:ignore
+    #         eles["sta"] = pd.read_csv(  # pyright:ignore
+    #             "data/station.lst",
+    #             usecols=[1, 2],
+    #             names=["x", "y"],
+    #             header=None,
+    #             delim_whitespace=True,
+    #         )
+    #     return params, eles
 
     # TODO
     def _init_funcs(self):

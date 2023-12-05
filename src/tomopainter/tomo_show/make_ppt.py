@@ -1,8 +1,9 @@
 from pathlib import Path
+import collections.abc  # a bug in windows
 
 from pptx import Presentation
 
-from .add_slide import (
+from .ppt_adds import (
     ppt_add_dcs,
     ppt_add_probs,
     ppt_add_prob_with_dc,
@@ -10,6 +11,15 @@ from .add_slide import (
     ppt_add_one_fig_per_slide,
     ppt_add_single_type,
 )
+
+
+def make_ppt(ppt_name, figs):
+    ppt = PptMaker(pn=ppt_name, fig_root=figs, remake=True)
+    ppt.add_area(r"area_figs")
+    ppt.add_phase_results(r"phase")
+    ppt.add_dispersion_curves(r"dispersion_curves")
+    ppt.add_mc_results(r"mc_figs")
+    ppt.save()
 
 
 class PptMaker:
@@ -29,24 +39,29 @@ class PptMaker:
 
     def add_area(self, area_dir):
         area = self.figs / area_dir
-        self.prs = ppt_add_one_fig_per_slide(self.prs, area, [3.13, 2.45],
-                                             [20, 11], "area.png")
-        self.prs = ppt_add_one_fig_per_slide(self.prs, area, [4.56, 2.1],
-                                             [14.5, 15.5], "evt_sites.png")
-        self.prs = ppt_add_one_fig_per_slide(self.prs, area, [3.456, 2.345],
-                                             [18, 10], "perNum_vel.png")
+        self.prs = ppt_add_one_fig_per_slide(
+            self.prs, area, [3.13, 2.45], [20, 11], "area.png"
+        )
+        # self.prs = ppt_add_one_fig_per_slide(
+        #     self.prs, area, [4.56, 2.1], [14.5, 15.5], "evt_sites.png"
+        # )
+        # self.prs = ppt_add_one_fig_per_slide(
+        #     self.prs, area, [3.456, 2.345], [18, 10], "perNum_vel.png"
+        # )
         # self.prs = ppt_add_one_fig_per_slide(
         #     self.prs, area, [3.6, 2.1], [15, 15], "rays_cover.png"
         # )
-        self.prs = ppt_add_one_fig_per_slide(self.prs, area, [1.5, 2.45],
-                                             [21, 12], "model.png")
+        self.prs = ppt_add_one_fig_per_slide(
+            self.prs, area, [1.5, 2.45], [21, 12], "model.png"
+        )
 
     def add_phase_results(self, phase_dir):
         phase = self.figs / phase_dir
         # ant
+        ant = phase / "ant_figs"
         self.prs = ppt_add_single_type(
             self.prs,
-            phase / "ant_figs",
+            ant / "vel_figs",
             "*VEL*",
             self.margins[1],
             self.shape["sub1"],
@@ -57,7 +72,7 @@ class PptMaker:
         # add phase vel of all periods
         self.prs = ppt_add_single_type(
             self.prs,
-            tpwt / "phv",
+            tpwt / "vel_figs",
             "*VEL*",
             self.margins[1],
             self.shape["sub1"],
@@ -66,7 +81,7 @@ class PptMaker:
         # ave vel and std
         self.prs = ppt_add_single_type(
             self.prs,
-            tpwt / "as",
+            tpwt / "as_figs",
             "*AS*",
             self.margins[1],
             self.shape["sub2"],
@@ -76,7 +91,7 @@ class PptMaker:
         # add check board of all periods
         self.prs = ppt_add_single_type(
             self.prs,
-            tpwt / "checkboard",
+            tpwt / "cb_figs",
             "*CB*",
             self.margins[1],
             self.shape["sub1"],
@@ -94,21 +109,21 @@ class PptMaker:
     def add_mc_results(self, mc_dir):
         mc = self.figs / mc_dir
         # probalCrs
-        self.prs = ppt_add_probs(
-            self.prs, mc / "prob", self.margins[1], self.shape["prob"]
-        )
-        # misfit
-        self.prs = ppt_add_one_fig_per_slide(
-            self.prs,
-            mc,
-            self.margins[0],
-            [15, 12.5],
-            "misfit.png",
-        )
-        # bad grid
+        # self.prs = ppt_add_probs(
+        #     self.prs, mc / "prob", self.margins[1], self.shape["prob"]
+        # )
+        # # misfit
+        # self.prs = ppt_add_one_fig_per_slide(
+        #     self.prs,
+        #     mc,
+        #     self.margins[0],
+        #     [15, 12.5],
+        #     "misfit.png",
+        # )
+        # volcano grid
         self.prs = ppt_add_prob_with_dc(
             self.prs,
-            mc / "bad",
+            mc / "volcano",
             [4.567, 1.234],
             [self.shape["dc"], self.shape["prob"]],
         )
@@ -116,22 +131,24 @@ class PptMaker:
         self.prs = ppt_add_single_type(
             self.prs,
             mc / "depth",
-            "vs*",
+            "*ave*",
             self.margins[1],
             self.shape["sub1"],
-            key=lambda p: int(p.stem.split("_")[-1][:-2]),
+            key=lambda p: int(p.stem.split("_")[1][:-2]),
         )
         # vs profile
         for lt in (mc / "profile").glob("*"):
-            self.prs = ppt_add_profile(self.prs, lt, [0.35, 1.83],
-                                       self.shape["center"])
+            self.prs = ppt_add_profile(
+                self.prs, lt, [0.35, 1.83], self.shape["center"]
+            )
 
     def add_dispersion_curves(self, dcs_dir):
         """
         add diff of all periods
         """
-        self.prs = ppt_add_dcs(self.prs, self.figs / dcs_dir, self.margins[1],
-                               self.shape["dc"])
+        self.prs = ppt_add_dcs(
+            self.prs, self.figs / dcs_dir, self.margins[1], self.shape["dc"]
+        )
 
     def save(self, target=None):
         """
