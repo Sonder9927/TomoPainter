@@ -124,7 +124,7 @@ def gmt_plot_vs_vpanel(topo, tomos, lregion, borders, line, title, fn, ave):
         "lines": [line],
         "line_pen": "fat,red",
         "tect": 0,
-        "eles": ["basalt", "valcano"],
+        "eles": ["basalt", "volcano"],
     }
     fig = fig_tomos(fig, topo, [], **kwgs)
 

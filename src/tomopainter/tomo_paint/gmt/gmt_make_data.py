@@ -133,7 +133,7 @@ def make_topos(
 # return str(pre_sf)
 
 
-def tomo_grid(data, region, outfile, **spacings):
+def tomo_grid(data, region, outfile=None, **spacings) -> pd.DataFrame:
     if spacings is None:
         spacings = {}
     # blockmean
@@ -149,11 +149,12 @@ def tomo_grid(data, region, outfile, **spacings):
         spacing=spacings.get("surface") or 0.5,
     )
     # grdsample
-    pygmt.grdsample(
-        grid=grd,
-        spacing=spacings.get("grdsample") or 0.01,
-        outgrid=outfile,
-    )
+    if outfile is not None:
+        pygmt.grdsample(
+            grid=grd,
+            spacing=spacings.get("grdsample") or 0.01,
+            outgrid=outfile,
+        )
     return pygmt.grd2xyz(grd)
 
 

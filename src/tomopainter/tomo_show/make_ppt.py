@@ -3,7 +3,7 @@ import collections.abc  # a bug in windows
 
 from pptx import Presentation
 
-from .ppt_adds import (
+from .add_slide import (
     ppt_add_dcs,
     ppt_add_probs,
     ppt_add_prob_with_dc,

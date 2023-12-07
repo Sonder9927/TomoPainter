@@ -31,7 +31,7 @@ def fig_tomos(fig, topo, tomos, frame=None, **kwargs):
         for tomo in tomos:
             fig.grdimage(**tomo, **tomo_param)
 
-    # plot tects and elements like sta basalt valcano
+    # plot tects and elements like sta basalt volcano
     if (tect := kwargs.get("tect")) is not None:
         _fig_tects(fig, tect)
         # eles = [] if (ee := kwargs.get("eles")) is None else ee
@@ -52,7 +52,7 @@ def fig_elements(fig, elements):
     fig_element_funcs = {
         "sta": _fig_stations,
         "basalt": _fig_basalts,
-        "valcano": _fig_valcanos,
+        "volcano": _fig_volcanos,
     }
     for e in elements:
         fig_element_funcs[e](fig, txt)
@@ -78,7 +78,7 @@ def _fig_basalts(fig, txt):
     cc = "temp/temp.cpt"
     cc = makecpt([0, 10], cmap="hot", reverse=True)
     fig.plot(data=basalts[["x", "y", "age"]], style="c0.2c", cmap=cc)
-    fig.colorbar(cmap=cc, position="JMR", frame="a")
+    fig.colorbar(cmap=cc, frame="a")
 
 
 def _fig_stations(fig, txt):
@@ -86,7 +86,7 @@ def _fig_stations(fig, txt):
     fig.plot(data=stas, style="t0.15c", fill="darkblue")
 
 
-def _fig_valcanos(fig, txt):
+def _fig_volcanos(fig, txt):
     # nushan
     fig.plot(x=118.09, y=32.8, style="ksquaroid/0.4c", fill="magenta")
     # xinchang
@@ -95,40 +95,40 @@ def _fig_valcanos(fig, txt):
     # fig.plot(x=119.44, y=30.45, style="ksquaroid/0.4c", fill="magenta")
 
 
-def fig_tect_and_sta(fig, tect, elements):
-    txt = Path("data/txt")
-    fig.coast(shorelines="1/0.5p,black")
-    # basalts
-    if "basalt" in elements:
-        basalts = pd.read_csv(txt / "tects/China_basalts_data.csv")
-        # filter by age
-        basalts = basalts[basalts["age"] < 10]
-        cc = "temp/temp.cpt"
-        cc = makecpt([0, 10], cmap="hot", reverse=True)
-        fig.plot(data=basalts[["x", "y", "age"]], style="c0.2c", cmap=cc)
-        fig.colorbar(cmap=cc, position="JMR+w4c/0.2c+o0.5c/0c", frame="a")
+# def fig_tect_and_sta(fig, tect, elements):
+#     txt = Path("data/txt")
+#     fig.coast(shorelines="1/0.5p,black")
+#     # basalts
+#     if "basalt" in elements:
+#         basalts = pd.read_csv(txt / "tects/China_basalts_data.csv")
+#         # filter by age
+#         basalts = basalts[basalts["age"] < 10]
+#         cc = "temp/temp.cpt"
+#         cc = makecpt([0, 10], cmap="hot", reverse=True)
+#         fig.plot(data=basalts[["x", "y", "age"]], style="c0.2c", cmap=cc)
+#         fig.colorbar(cmap=cc, position="JMR+w4c/0.2c+o0.5c/0c", frame="a")
 
-    # plot valcano
-    if "valcano" in elements:
-        # nushan
-        fig.plot(x=118.09, y=32.8, style="ksquaroid/0.4c", fill="magenta")
-        # xinchang
-        fig.plot(x=120.88, y=29.5, style="ksquaroid/0.4c", fill="magenta")
-        # # xilong
-        # fig.plot(x=119.44, y=30.45, style="ksquaroid/0.4c", fill="magenta")
+#     # plot volcano
+#     if "volcano" in elements:
+#         # nushan
+#         fig.plot(x=118.09, y=32.8, style="ksquaroid/0.4c", fill="magenta")
+#         # xinchang
+#         fig.plot(x=120.88, y=29.5, style="ksquaroid/0.4c", fill="magenta")
+#         # # xilong
+#         # fig.plot(x=119.44, y=30.45, style="ksquaroid/0.4c", fill="magenta")
 
-    # stations
-    if "sta" in elements:
-        stas = pd.read_csv(txt / "station.csv", usecols=[1, 2])
-        fig.plot(data=stas, style="t0.15c", fill="darkblue")
+#     # stations
+#     if "sta" in elements:
+#         stas = pd.read_csv(txt / "station.csv", usecols=[1, 2])
+#         fig.plot(data=stas, style="t0.15c", fill="darkblue")
 
-    # tectonics
-    geo_data = ["China_tectonic.dat", "CN-faults.gmt", "find.gmt"]
-    tect_pens = ["1p,black,-", "0.5p,black,-"]
-    fig.plot(data=txt / f"tects/{geo_data[tect]}", pen=tect_pens[0])
-    fig.plot(data=txt / "tects/small_faults.gmt", pen=tect_pens[1])
-    # fig.plot(data="data/txt/tects/small_faults_finding.gmt", pen="red,-")
-    return fig
+#     # tectonics
+#     geo_data = ["China_tectonic.dat", "CN-faults.gmt", "find.gmt"]
+#     tect_pens = ["1p,black,-", "0.5p,black,-"]
+#     fig.plot(data=txt / f"tects/{geo_data[tect]}", pen=tect_pens[0])
+#     fig.plot(data=txt / "tects/small_faults.gmt", pen=tect_pens[1])
+#     # fig.plot(data="data/txt/tects/small_faults_finding.gmt", pen="red,-")
+#     return fig
 
 
 def _hscale(region: list) -> str:

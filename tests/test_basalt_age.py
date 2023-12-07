@@ -25,7 +25,7 @@ def test_fig_tomos(fig, topo):
     projection = f"m{x}/{y}/0.3i"
     fig.basemap(region=topo["region"], projection=projection, frame="a")
 
-    # plot tects and elements like sta basalt valcano
+    # plot tects and elements like sta basalt colcano
     fig = test_fig_tect_and_sta(fig, 0)
 
     return fig
@@ -42,7 +42,7 @@ def test_fig_tect_and_sta(fig, tect):
     fig.plot(data=basalts[["x", "y", "age"]], style="c0.2c", cmap=cc)
     fig.colorbar(cmap=cc, position="JMR+w4c/0.2c+o0.5c/0c", frame="a")
 
-    # plot valcano
+    # plot volcano
     # nushan
     fig.plot(x=118.09, y=32.8, style="ksquaroid/0.4c", fill="magenta")
     # xinchang

@@ -14,7 +14,7 @@ def plot_area_map(regions, fig_name):
         "topo": {"region": regions[0]},
         "tomos": [{"grid": grd, "cmap": makecpt([-3000, 2500], cmap="globe")}],
     }
-    area = make_topos("ETOPO1", regions[1], cmap="geo")
+    area = make_topos("ETOPO1", regions[1])
     gmt_fig_area(vicinity, area, fig_name)
 
 
@@ -43,14 +43,16 @@ def plot_misfit(grid, region, fig_name, eles) -> None:
 
 def plot_model(region, fn):
     topo = make_topos("ETOPO1", region)
-    tomos = _sed_and_moho(region)
+    tomos = _model_tomos(region)
     _gmt_fig_model(topo, tomos, fn)
 
 
-def _sed_and_moho(region):
+def _model_tomos(region):
+    from tomopainter.rose import xyz_ave
+
     tomos = [
         {"grid": f"temp/{i}.grd", "cmap": f"temp/{i}.cpt"}
-        for i in ["sed", "moho"]
+        for i in ["sed", "moho", "poisson"]
     ]
     sed = pd.read_csv(
         "data/txt/tects/sedthk.xyz",
@@ -58,6 +60,7 @@ def _sed_and_moho(region):
         delim_whitespace=True,
         names=["x", "y", "z"],
     )
+    sed["z"] = sed["z"] / sed["z"].mean()
     tomo_grid(sed, region, tomos[0]["grid"])
     makecpt([0, 2, 0.05], tomos[0]["cmap"], cmap="jet", reverse=True)
     moho = pd.read_csv(
@@ -84,18 +87,21 @@ def _gmt_fig_model(topo, tomos, fn):
         FONT="10",
     )
     with fig.subplot(
-        nrows=1, ncols=2, figsize=("15c", "8c"), autolabel=True, margins="0.5c"
+        nrows=1, ncols=3, figsize=("23c", "8c"), autolabel=True, margins="0.5c"
     ):
         kwgs = {"projection": "M?", "tect": 0, "clip": True}
         with fig.set_panel(panel=0):
             fig = fig_tomos(fig, topo, [tomos[0]], **kwgs)
             cpt = tomos[0]["cmap"]
-            fig.colorbar(cmap=cpt, frame=["a", "x+lSedthk", "y+lkm"])
-
+            fig.colorbar(cmap=cpt, frame=["a", "x+lSedthk", "y"])
         with fig.set_panel(panel=1):
             fig = fig_tomos(fig, topo, [tomos[1]], **kwgs)
             cpt = tomos[1]["cmap"]
-            fig.colorbar(cmap=cpt, frame=["a", "x+lMoho", "y+lkm"])
+            fig.colorbar(cmap=cpt, frame=["a", "x+lMoho", "y"])
+        with fig.set_panel(panel=2):
+            fig = fig_tomos(fig, topo, [tomos[2]], **kwgs)
+            cpt = tomos[2]["cmap"]
+            fig.colorbar(cmap=cpt, frame=["a", "x+lPoisson", "y"])
     fig.savefig(fn)
 
 
@@ -113,7 +119,7 @@ def gmt_fig_area(vici, area, fn):
     with fig.subplot(
         nrows=1, ncols=2, figsize=("15c", "8c"), autolabel=True, margins="0.5c"
     ):
-        kwgs = {"projection": "M?", "tect": 0, "eles": ["sta", "valcano"]}
+        kwgs = {"projection": "M?", "tect": 0, "eles": ["sta", "volcano"]}
         with fig.set_panel(panel=0):
             fig = fig_tomos(fig, **vici, **kwgs)
             fig.text(
@@ -128,8 +134,8 @@ def gmt_fig_area(vici, area, fn):
 
         with fig.set_panel(panel=1):
             lines = idt_profiles("data/txt/profile.json", idt=False)
-            kwgs |= {"tect": 1, "lines": lines, "line_pen": "thick,lightbrown"}
-            kwgs["eles"].append("basalt")
+            kwgs |= {"tect": 1, "lines": lines, "line_pen": "thick,brown"}
+            kwgs["eles"] = ["basalt", "volcano"]
             fig = fig_tomos(fig, area, [], **kwgs)
             fig.text(
                 textfiles="data/txt/tects/areaTectName.txt",
@@ -139,7 +145,7 @@ def gmt_fig_area(vici, area, fn):
                 pen="0.5p,-",
             )
             cpt = area["cpt"]
-            fig.colorbar(cmap=cpt, frame=["a", "x+lElevation", "y+lm"])
+            # fig.colorbar(cmap=cpt, frame=["a", "x+lElevation", "y+lm"])
     fig.savefig(fn)
 
 
