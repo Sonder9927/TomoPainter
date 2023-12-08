@@ -1,4 +1,4 @@
-# import pandas as pd
+from ctypes import ArgumentError
 from pathlib import Path
 import sqlite3
 
@@ -11,11 +11,13 @@ class DataQueryer:
         self.dbf = Path(dbfile)
         self.scripts = Path("src/sqlscripts")
         self.conn = sqlite3.connect(self.dbf)
+        self._per_dep()
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.conn.commit()
         self.conn.close()
 
     def init_database(self, data_dir, region, spacing=0.5) -> None:
@@ -26,6 +28,7 @@ class DataQueryer:
         # re-connent
         self.conn = sqlite3.connect(self.dbf)
         _conn_write_data(self.conn, data, region, spacing, self.scripts)
+        self._per_dep()
 
     def query(
         self,
@@ -34,36 +37,80 @@ class DataQueryer:
         usecols: None | list[str] = None,
         avecols: None | list[str] = None,
         where: None | str = None,
+        ave: bool = False,
     ) -> pd.DataFrame:
-        cols = "*" if usecols is None else f"x,y,{','.join(usecols)}"
-        sql_cmd = f"""SELECT {cols}\nFROM {table}\n"""
+        cols = None
+        if usecols is not None:
+            cols = ["g.x", "g.y"] + [f"t.{col}" for col in usecols]
+        cols_str = "*" if cols is None else ", ".join(cols)
+        sql_cmd = f"""
+            SELECT {cols_str}
+            FROM grid g
+            JOIN {table} t
+              ON g.id = t.grid_id
+
+        """
         if where is not None:
-            sql_cmd += "WHERE {where}\n"
-        df = pd.read_sql(sql_cmd, self.conn)
-        if avecols is not None:
+            sql_cmd += where
+        df = pd.read_sql(sql_cmd, self.conn).dropna()
+        if ave:
+            if usecols is None:
+                raise ArgumentError("Set `usecols` if `ave` was True")
+            if not avecols:
+                avecols = usecols
             for col in avecols:
                 avg = df[col].mean()
                 df[col] = (df[col] - avg) / avg * 100
         return df
 
+    def names(self, table) -> list[str]:
+        cols_info = (
+            self.conn.cursor()
+            .execute(f"PRAGMA table_info({table});")
+            .fetchall()
+        )
+        return [col[1] for col in cols_info]
+
     def test_query(self, table):
         return pd.read_sql(f"select *\nfrom {table}", self.conn)
 
+    def _per_dep(self):
+        cursor = self.conn.cursor()
+        self.periods = _select_distinct(cursor, "phase", "period")
+        self.depths = _select_distinct(cursor, "swave", "depth")
+
 
 def _conn_write_data(conn, data, region, spacing, scripts):
+    cursor = conn.cursor()
     # create tables and set on foreign key
     with open(scripts / "create_tables.sql", "rt") as f:
         create_tables = f.read()
-    conn.executescript(create_tables)
+    cursor.executescript(create_tables)
+    # create phase table with different dcheck
+    # which we'd better dont know before execute `rglob("dcheck")`
+    dchecks = sorted([dd.name for dd in data.rglob(r"dcheck*/")])
+    create_phase_sql = f"""
+        CREATE TABLE phase (
+          -- id INT PRIMARY KEY,
+          grid_id INT,
+          method VARCHAR(4),
+          period INT,
+          vel FLOAT,
+          std FLOAT,
+          {', '.join([rf'"{dcheck}" FLOAT' for dcheck in dchecks])},
+          FOREIGN KEY (grid_id) REFERENCES grid(id)
+        );
+    """
+    cursor.execute(create_phase_sql)
 
-    # write main table `grids(id,x,y)`
+    # write data into tables
     args = {"con": conn, "index": False, "if_exists": "append"}
+    # write main table `grids(id,x,y)`
     grid_df = _grid_df(region, spacing)
     grid_df.to_sql("grid", **args)
-    # write subtable `model(id,sed,rf_moho,mc_moho)`
-    _model_df(data, grid_df).to_sql("model", **args)
-    _phase_df(data, grid_df).to_sql("phase", **args)
-    _swave_df(data / "vs.csv", grid_df).to_sql("swave", **args)
+    table_funcs = {"model": _model_df, "phase": _phase_df, "swave": _swave_df}
+    for tb, fn in table_funcs.items():
+        _check_columns(cursor, tb, fn(data, grid_df)).to_sql(tb, **args)
 
 
 def _grid_df(region, spacing) -> pd.DataFrame:
@@ -77,7 +124,19 @@ def _grid_df(region, spacing) -> pd.DataFrame:
     return grid_df
 
 
+def _check_columns(cursor, table, df: None | pd.DataFrame) -> pd.DataFrame:
+    cols_info = cursor.execute(f"PRAGMA table_info({table});").fetchall()
+    target = {col[1] for col in cols_info}
+    if df is None:
+        return pd.DataFrame(columns=list(target))
+    df_cols = set(df.columns)
+    for col in target - df_cols:
+        df[col] = None
+    return df.drop(columns=list(df_cols - target))
+
+
 def _model_df(gdir: Path, gdf) -> pd.DataFrame:
+    """write subtable model(id,sed,rf_moho,mc_moho)"""
     from tomopainter.tomo_paint.gmt import tomo_grid
 
     rgn = [gdf["x"].min(), gdf["x"].max(), gdf["y"].min(), gdf["y"].max()]
@@ -120,7 +179,6 @@ def _model_df(gdir: Path, gdf) -> pd.DataFrame:
         "mc_misfit",
         "mc_moho",
     ]
-    model_df.to_csv("model.csv")
     return model_df
 
 
@@ -137,21 +195,79 @@ def _model_df_test(gdir: Path, gdf) -> pd.DataFrame:
     )
 
 
-def _phase_df(gdir: Path, gdf) -> pd.DataFrame:
+def _phase_df(gdir: Path, gdf) -> None | pd.DataFrame:
+    phase_df = None
+    for mdir in gdir.glob("*/"):
+        # data of per method
+        method = mdir.name
+        dfs = {}
+        for gf in mdir.rglob("*.grid"):
+            [mtd, idt, period] = gf.stem.split("_")
+            if mtd != method:
+                raise FileNotFoundError(f"In {method} dir find {mtd}_*.")
+            df = pd.read_csv(
+                gf, header=None, delim_whitespace=True, names=["x", "y", idt]
+            )
+            df = gdf.merge(df, on=["x", "y"], how="left")
+            df["period"] = period
+            df = df[["id", "period", idt]]
+            dfs[idt] = pd.concat([dfs[idt], df]) if idt in dfs else df
+        # merge all idt dfs of the method
+        method_df = None
+        for df in dfs.values():
+            method_df = (
+                df
+                if method_df is None
+                else method_df.merge(df, on=["id", "period"], how="outer")
+            )
+        if method_df is None:
+            continue
+        method_df["method"] = method
+        method_df.rename(columns={"id": "grid_id"}, inplace=True)
+        # concat all method dfs
+        phase_df = (
+            method_df if phase_df is None else pd.concat([phase_df, method_df])
+        )
+    if phase_df is not None:
+        phase_df.sort_values(by=["method", "period", "grid_id"], inplace=True)
+    return phase_df
+
+
+def _test_phase_df(gdir: Path, gdf) -> None | pd.DataFrame:
+    # return None
     return pd.DataFrame(
         {
             "grid_id": [0, 1],
             "period": [20, 25],
             "method": ["tpwt", "ant"],
-            "phase_velocity": [3.4, 3.5],
-            "standard_deviation": [3.3, 3.2],
-            "cbeckboard1.5_velocity": [3.4, 3.4],
-            "checkboard2_velocity": [3.4, 3.41],
+            "velocity": [3.4, 3.5],
+            "std": [3.3, 3.2],
+            "dcheck1.5": [3.4, 3.4],
         }
     )
 
 
-def _swave_df(gdir: Path, gdf) -> pd.DataFrame:
+def _swave_df(gdir, gdf):
+    swave_df = None
+    for vsf in gdir.glob("*vs.csv"):
+        df = pd.read_csv(vsf)
+        df = df.merge(gdf, on=["x", "y"], how="left")
+        df["depth"] = abs(df["depth"])
+        df = df.drop(columns=["x", "y"])
+        df.rename(
+            columns={"id": "grid_id", "velocity": vsf.stem}, inplace=True
+        )
+        swave_df = (
+            df
+            if swave_df is None
+            else swave_df.merge(df, on=["grid_id", "depth"], how="outer")
+        )
+    if swave_df is not None:
+        swave_df.sort_values(by=["grid_id", "depth"], inplace=True)
+    return swave_df
+
+
+def _test_swave_df(gdir: Path, gdf) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "grid_id": [0, 1],
@@ -160,6 +276,18 @@ def _swave_df(gdir: Path, gdf) -> pd.DataFrame:
             "method": ["tpwt", "ant"],
         }
     )
+
+
+def _select_distinct(cursor, table, col):
+    if cursor.execute(
+        f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'"
+    ).fetchone():
+        rows = cursor.execute(
+            f"SELECT DISTINCT {col} FROM {table};"
+        ).fetchall()
+        return sorted([row[0] for row in rows])
+    else:
+        return []
 
 
 def xyz_ave(df):

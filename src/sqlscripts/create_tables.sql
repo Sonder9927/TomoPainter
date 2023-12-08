@@ -18,25 +18,25 @@ CREATE TABLE model (
 );
 
 -- surface wave
--- (grid_id, group(ant/tpwt), period, velocity, standard_deviation, checkboard(1.5 & 2))
-CREATE TABLE phase (
-  -- id INT PRIMARY KEY,
-  grid_id INT,
-  method VARCHAR(4),
-  period INT,
-  phase_velocity FLOAT,
-  standard_deviation FLOAT,
-  "cbeckboard1.5_velocity" FLOAT,
-  checkboard2_velocity FLOAT,
-  FOREIGN KEY (grid_id) REFERENCES grid(id)
-);
+-- (grid_id, method(ant/tpwt), period, velocity, standard_deviation, dcheck)
+-- write in python because of the lack of colmn names of dcheck.
+-- CREATE TABLE phase (
+--   -- id INT PRIMARY KEY,
+--   grid_id INT,
+--   method VARCHAR(4),
+--   period INT,
+--   vel FLOAT,
+--   std FLOAT,
+--   dcheck FLOAT,
+--   FOREIGN KEY (grid_id) REFERENCES grid(id)
+-- );
 
 -- shear wave (grid_id, depth, velocity, group(ant/tpwt))
 CREATE TABLE swave (
   -- id INT PRIMARY KEY,
   grid_id INT,
-  method VARCHAR(4),
   depth FLOAT,
-  velocity FLOAT,
+  rj_vs FLOAT,
+  mc_vs FLOAT,
   FOREIGN KEY (grid_id) REFERENCES grid(id)
 );

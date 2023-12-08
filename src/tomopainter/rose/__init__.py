@@ -1,9 +1,7 @@
-from .data_info import calc_lab  # , vel_info, vel_info_per
+from .data_info import calc_lab
 from .grid import GridPhv, GridVs
-from .util import Region
-
 from .points import area_hull_files, points_boundary, points_inner
-from .profile import init_profiles, idt_profiles
+from .profile import idt_profiles, init_profiles
 from .query import DataQueryer, xyz_ave  # , read_xyz_from_csv
 
 __all__ = [
@@ -20,5 +18,4 @@ __all__ = [
     # "read_xyz_from_csv",
     "xyz_ave",
     "DataQueryer",
-    "Region",
 ]
