@@ -4,18 +4,15 @@ import pygmt
 from .gmt_make_data import makecpt
 
 
-def vpanel_makecpt(ccrust: str, clithos, cVave):
+def vpanel_makecpt(dep, ccrust: str, clithos, cVave):
     # crust
-    makecpt(
-        [3.2, 4, 0.1], ccrust, cmap="jet", reverse=True
-    )  # , cmap="gridvel_6_v3.cpt")
+    makecpt([3.2, 4, 0.1], ccrust, cmap="jet", reverse=True)
     # lithos
     # makecpt([4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, cpt="cbcRdYlBu.cpt")
-    makecpt(
-        [4.43 - 0.25, 4.43 + 0.17, 0.03], clithos, cmap="jet", reverse=True
-    )
-    # cpt="gridvel_6_v3.cpt",
-    # 60/80km
+    if dep < 90:
+        makecpt([4.2, 4.5, 0.03], clithos, cmap="jet", reverse=True)
+    else:
+        makecpt([4.2, 4.6, 0.03], clithos, cmap="jet", reverse=True)
     # ave
     makecpt([-4, 4, 0.05], cVave, cmap="jet", reverse=True)
 

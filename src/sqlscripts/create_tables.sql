@@ -13,6 +13,7 @@ CREATE TABLE model (
   rf_moho FLOAT,
   mc_misfit FLOAT,
   mc_moho FLOAT,
+  lab FLOAT,
   poisson FLOAT,
   FOREIGN KEY (grid_id) REFERENCES grid(id)
 );

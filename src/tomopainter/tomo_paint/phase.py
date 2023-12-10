@@ -6,9 +6,30 @@ from .gmt import plot_as, plot_diff, plot_vel
 
 
 class PhasePainter:
-    def __init__(self, region, ps_file, cptcf) -> None:
+    def __init__(self, queryer, region) -> None:
         from tomopainter.rose import GridPhv
 
+        cptcf = {"cmap": "jet", "reverse": True}
+        # cptcf = {"cpt": "Vc_1.8s.cpt"}
+        ps_file = "data/txt/periods_series_jet.json"
+        self.region = region
+        with open(ps_file) as f:
+            per_se_pairs = json.load(f)
+        self.periods = [int(i) for i in per_se_pairs.keys()]
+        self.gps: list[GridPhv] = [
+            GridPhv(p, s) for p, s in per_se_pairs.items()
+        ]
+        self.cptcf = cptcf
+        self.idts = ["vel", "std", "cb", "diff"]
+
+
+class OldPhasePainter:
+    def __init__(self, queryer, region) -> None:
+        from tomopainter.rose import GridPhv
+
+        cptcf = {"cmap": "jet", "reverse": True}
+        # cptcf = {"cpt": "Vc_1.8s.cpt"}
+        ps_file = "data/txt/periods_series_jet.json"
         self.region = region
         with open(ps_file) as f:
             per_se_pairs = json.load(f)

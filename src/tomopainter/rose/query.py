@@ -4,6 +4,7 @@ import sqlite3
 
 import numpy as np
 import pandas as pd
+from pandas.errors import EmptyDataError
 
 
 class DataQueryer:
@@ -12,6 +13,17 @@ class DataQueryer:
         self.scripts = Path("src/sqlscripts")
         self.conn = sqlite3.connect(self.dbf)
         self._per_dep()
+
+    def phase(self, method: str, period: int, col: str) -> pd.DataFrame:
+        if period not in self.periods:
+            raise ArgumentError(f"argument {period} is out of range.")
+        return self.query(
+            "phase", usecols=[col], where=[f"{method=}", f"{period=}"]
+        )
+
+    def swave(self, col, *, depth=None) -> pd.DataFrame:
+        where = None if depth is None else [f"{depth=}"]
+        return self.query("swave", usecols=[col], where=where)
 
     def __enter__(self):
         return self
@@ -36,7 +48,7 @@ class DataQueryer:
         *,
         usecols: None | list[str] = None,
         avecols: None | list[str] = None,
-        where: None | str = None,
+        where: None | list[str] = None,
         ave: bool = False,
     ) -> pd.DataFrame:
         cols = None
@@ -48,11 +60,18 @@ class DataQueryer:
             FROM grid g
             JOIN {table} t
               ON g.id = t.grid_id
-
         """
         if where is not None:
-            sql_cmd += where
+            sql_cmd += f"WHERE {' AND '.join(where)};"
         df = pd.read_sql(sql_cmd, self.conn).dropna()
+        if df.empty:
+            raise EmptyDataError(
+                f"""
+                    DataFrame is empth with {where},
+                    or cleaned all data when `.dropna()`.
+                    try query with argument `usecols`.
+                """
+            )
         if ave:
             if usecols is None:
                 raise ArgumentError("Set `usecols` if `ave` was True")
@@ -63,7 +82,7 @@ class DataQueryer:
                 df[col] = (df[col] - avg) / avg * 100
         return df
 
-    def names(self, table) -> list[str]:
+    def table_columns(self, table) -> list[str]:
         cols_info = (
             self.conn.cursor()
             .execute(f"PRAGMA table_info({table});")
@@ -71,13 +90,19 @@ class DataQueryer:
         )
         return [col[1] for col in cols_info]
 
-    def test_query(self, table):
-        return pd.read_sql(f"select *\nfrom {table}", self.conn)
-
     def _per_dep(self):
         cursor = self.conn.cursor()
-        self.periods = _select_distinct(cursor, "phase", "period")
-        self.depths = _select_distinct(cursor, "swave", "depth")
+        ant = _select_distinct(cursor, "phase", "period", "method='ant'")
+        tpwt = _select_distinct(cursor, "phase", "period", "method='tpwt'")
+        self.periods = {"ant": ant, "tpwt": tpwt}
+
+        # self.depths = _select_distinct(cursor, "swave", "depth")
+        rj = _select_distinct(cursor, "swave", "depth", "rj_vs IS NOT NULL")
+        mc = _select_distinct(cursor, "swave", "depth", "mc_vs IS NOT NULL")
+        self.depths = {"rj": rj, "mc": mc}
+
+    # def test_query(self, table):
+    #     return pd.read_sql(f"select *\nfrom {table}", self.conn)
 
 
 def _conn_write_data(conn, data, region, spacing, scripts):
@@ -108,9 +133,21 @@ def _conn_write_data(conn, data, region, spacing, scripts):
     # write main table `grids(id,x,y)`
     grid_df = _grid_df(region, spacing)
     grid_df.to_sql("grid", **args)
-    table_funcs = {"model": _model_df, "phase": _phase_df, "swave": _swave_df}
-    for tb, fn in table_funcs.items():
-        _check_columns(cursor, tb, fn(data, grid_df)).to_sql(tb, **args)
+    phase_df = _phase_df(data, grid_df)
+    _check_columns(cursor, "phase", phase_df).to_sql("phase", **args)
+    swave_df = _swave_df(data, grid_df)
+    _check_columns(cursor, "swave", swave_df).to_sql("swave", **args)
+    vs_df = swave_df[["grid_id", "depth", "mc_vs"]]
+    vs_df = vs_df.dropna()
+    vs_df.columns = ["id", "depth", "vs"]
+    lab = calc_lab(vs_df)
+    model_df = _model_df(data, grid_df)
+    # lab = pd.DataFrame({"grid_id": [1, 2], "lab": [2.2, 3.3]})
+    model_df = model_df.merge(lab, on=["grid_id"], how="left")
+    _check_columns(cursor, "model", model_df).to_sql("model", **args)
+    # table_funcs = {"model": _model_df, "phase": _phase_df, "swave": _swave_df}
+    # for tb, fn in table_funcs.items():
+    #     _check_columns(cursor, tb, fn(data, grid_df)).to_sql(tb, **args)
 
 
 def _grid_df(region, spacing) -> pd.DataFrame:
@@ -278,12 +315,12 @@ def _test_swave_df(gdir: Path, gdf) -> pd.DataFrame:
     )
 
 
-def _select_distinct(cursor, table, col):
+def _select_distinct(cursor, table, target, where: str) -> list:
     if cursor.execute(
         f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'"
     ).fetchone():
         rows = cursor.execute(
-            f"SELECT DISTINCT {col} FROM {table};"
+            f"SELECT DISTINCT {target} FROM {table} WHERE {where};"
         ).fetchall()
         return sorted([row[0] for row in rows])
     else:
@@ -294,3 +331,19 @@ def xyz_ave(df):
     avg = df["z"].mean()
     df["z"] = (df["z"] - avg) / avg * 100
     return df
+
+
+def calc_lab(vs, limits=None):
+    limits = limits or [50, 200]
+    df = vs[(vs["depth"] > limits[0]) & (vs["depth"] < limits[1])]
+    lab_df = df.groupby("id").apply(_max_nagative_gradient)
+    lab_df.dropna().reset_index(drop=True)
+    lab_df["grid_id"] = lab_df["id"].apply(lambda i: int(i))
+    lab_df.rename(columns={"depth": "lab"}, inplace=True)
+    return lab_df[["grid_id", "lab"]]
+
+
+def _max_nagative_gradient(group):
+    group["gra"] = np.gradient(group["vs"], group["depth"])
+    max_idx = group["gra"].idxmin() if any(group["gra"] < 0) else None
+    return group.loc[max_idx, ["id", "depth"]] if max_idx is not None else None

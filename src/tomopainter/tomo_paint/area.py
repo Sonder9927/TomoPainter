@@ -1,4 +1,5 @@
 from pathlib import Path
+from tomopainter.rose import path
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -9,6 +10,24 @@ from .gmt import (
     plot_rays,
     plot_model,
 )
+
+
+class ModelPainter:
+    def __init__(self, queryer, region) -> None:
+        self.queryer = queryer
+        self.regions = [[110, 125, 25, 40], region]
+        self.figs = Path("images/area_figs")
+        self.pes = pd.read_csv("data/per_evt_sta.csv")
+        self.idts = [
+            "area",
+            "sedthk",
+            "rf_moho",
+            "mc_misfit",
+            "mc_moho",
+            "sites",
+            "rays",
+            "pes",
+        ]
 
 
 class AreaPainter:

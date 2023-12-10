@@ -7,6 +7,36 @@ from tomopainter.tomo_paint.gmt import tomo_grid
 from tomopainter.rose import DataQueryer
 
 
+def read_db():
+    with DataQueryer("data/grids.db") as sr:
+        # pers = sr.periods
+        # ic(pers)
+        # deps = sr.depths
+        # ic(len(deps["rj"]), len(deps["mc"]))
+        # df = sr.query("model")
+        # ic(df.head())
+
+        df = sr.swave("mc_vs")
+        ic(df.head())
+        l1 = len(df)
+        ic(l1)
+        # df = sr.swave("mc_vs", depth=20)
+        # ic(df.tail())
+        # l2 = len(df)
+        # ic(l1, l2, l1 / l2)
+
+        # df = sr.phase("tpwt", 10, "vel")
+        # ic(df.head())
+        # ic(sr.depths)
+        # df = sr.query("swave", usecols=["mc_vs"])
+        # ic(df.head())
+        # df = sr.query("swave", usecols=["mc_vs"], ave=True)
+        # ic(df.head())
+        # df2 = sr.query("swave", usecols=["mc_vs", "rj_vs"])
+        # ic(df2.head())
+        # print(sr.names("swave"))
+
+
 def test_swave_df(gdir, gdf):
     swave_df = None
     for vsf in gdir.glob("*vs.csv"):
@@ -121,21 +151,7 @@ def test_df(region):
 def write_db(region):
     with DataQueryer("data/grids.db") as sr:
         sr.init_database("data/grids", region=region)
-        ic(sr.periods)
         # ic(sr.depths)
-
-
-def read_db():
-    with DataQueryer("data/grids.db") as sr:
-        ic(sr.periods)
-        # ic(sr.depths)
-        # df = sr.query("swave", usecols=["mc_vs"])
-        # ic(df.head())
-        # df = sr.query("swave", usecols=["mc_vs"], ave=True)
-        # ic(df.head())
-        # df2 = sr.query("swave", usecols=["mc_vs", "rj_vs"])
-        # ic(df2.head())
-        # print(sr.names("swave"))
 
 
 if __name__ == "__main__":

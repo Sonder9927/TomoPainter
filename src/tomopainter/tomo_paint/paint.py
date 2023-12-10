@@ -1,94 +1,99 @@
+from ctypes import ArgumentError
 from pathlib import Path
 
 from icecream import ic
 import pandas as pd
 
-from .area import AreaPainter
+from .area import ModelPainter
 from .dispersion import gmt_plot_dispersion_curves as plot_dc
-from tomopainter.rose import area_hull_files, calc_lab
+from tomopainter.rose import area_hull_files, calc_lab, DataQueryer, path
 from .phase import PhasePainter
-from .s_wave import VsPainter
+from .s_wave import VsPainter, SwavePainter
 
 
 class TomoPainter:
-    def __init__(self) -> None:
-        self.images = Path("images")
+    def __init__(self, queryer: DataQueryer) -> None:
+        self.images = path.mkdir("images")
         self.region = [115, 122.5, 27.9, 34.3]
-        dp = Path("data")
-        self.txt = dp / "txt"
-        self.vs = pd.read_csv(dp / "vs.csv")
-        mm = pd.read_csv(dp / "misfit_moho.csv")
-        self.misfit = mm[["x", "y", "misfit"]]
-        mm["moho"] = -abs(mm["moho"])
-        self.moho = mm[["x", "y", "moho"]]
-        self.mlf = self.txt / "moho_lab.csv"
-        self._init_funcs()
-        self.eles = {"tect": 0, "clip": True}
+        cates = ["model", "period", "depth"]
+        painters = [
+            p(queryer, self.region)
+            for p in [ModelPainter, PhasePainter, SwavePainter]
+        ]
+        self.painters = dict(zip(cates, painters))
+        self.idts = dict(zip(cates, [p.idts for p in painters]))
 
-    def plot(self, idt, *args, **kwargs):
-        self.paint_funcs[idt](*args, **kwargs, eles=self.eles)
+    def plot(self, idt, **kwargs):
+        for cate, idts in self.idts.items():
+            if idt in idts:
+                self.painters[cate].paint(idt, kwargs)
+                return
+        raise ArgumentError(f"{idt} is not a valid argument")
 
-    def map(self, idt):
-        self.paint_funcs[idt]()
+    # def old_plot(self, idt, *args, **kwargs):
+    #     self.paint_funcs[idt](*args, **kwargs, eles=self.eles)
 
-    # TODO
-    def _init_funcs(self):
-        """set functions to match idt, not a good way, uncomplete"""
-        # plot area figs
-        ap = AreaPainter(self.region, "data/per_evt_sta.csv")
-        ap_funcs = {
-            "area": ap.area_map,
-            "model": ap.model,
-            "pe": ap.per_evt,
-            "period event": ap.per_evt,
-            "sites": ap.sites,
-            "rays": ap.rays,
-        }
+    # def map(self, idt):
+    #     self.paint_funcs[idt]()
 
-        # plot phase figs
-        cptcf = {"cmap": "jet", "reverse": True}
-        # cptcf = {"cpt": "Vc_1.8s.cpt"}
-        ps_file = self.txt / "periods_series_jet.json"
-        php = PhasePainter(self.region, ps_file, cptcf)
-        php_funcs = {
-            "vel": php.vel,
-            "as": php.std,
-            "std": php.std,
-            "diff": php.diff,
-            "cb": php.checkboard,
-        }
+    # # TODO
+    # def _init_funcs(self):
+    #     """set functions to match idt, not a good way, uncomplete"""
+    #     # plot area figs
+    #     ap = AreaPainter(self.region, "data/per_evt_sta.csv")
+    #     ap_funcs = {
+    #         "area": ap.area_map,
+    #         "model": ap.model,
+    #         "pe": ap.per_evt,
+    #         "period event": ap.per_evt,
+    #         "sites": ap.sites,
+    #         "rays": ap.rays,
+    #     }
 
-        # plot dispersion curves figs
-        dc_funcs = {"dc": plot_dc, "dispersion curves": plot_dc}
+    #     # plot phase figs
+    #     cptcf = {"cmap": "jet", "reverse": True}
+    #     # cptcf = {"cpt": "Vc_1.8s.cpt"}
+    #     ps_file = self.txt / "periods_series_jet.json"
+    #     php = PhasePainter(self.region, ps_file, cptcf)
+    #     php_funcs = {
+    #         "vel": php.vel,
+    #         "as": php.std,
+    #         "std": php.std,
+    #         "diff": php.diff,
+    #         "cb": php.checkboard,
+    #     }
 
-        # plot mcmc figs
-        self.vsp = VsPainter(self.region, self.vs, self.mlf)
-        vsp_funcs = {
-            "depths": self._vs_depths,
-            "profiles": self.vsp.profiles,
-            "misfit": self._misfit,
-        }
+    #     # plot dispersion curves figs
+    #     dc_funcs = {"dc": plot_dc, "dispersion curves": plot_dc}
 
-        self.paint_funcs = {
-            key: value
-            for dt in [ap_funcs, php_funcs, vsp_funcs, dc_funcs]
-            for key, value in dt.items()
-        }
+    #     # plot mcmc figs
+    #     self.vsp = VsPainter(self.region, self.vs, self.mlf)
+    #     vsp_funcs = {
+    #         "depths": self._vs_depths,
+    #         "profiles": self.vsp.profiles,
+    #         "misfit": self._misfit,
+    #     }
 
-    def _misfit(self, *, eles):
-        self.vsp.misfit(self.misfit, eles=eles)
+    #     self.paint_funcs = {
+    #         key: value
+    #         for dt in [ap_funcs, php_funcs, vsp_funcs, dc_funcs]
+    #         for key, value in dt.items()
+    #     }
 
-    def _vs_depths(self, *, eles, **params):
-        depths = params.get("depths")
-        dep_filter = params.get("dep_filter")
-        if any([depths, dep_filter is not None]):
-            ave = params.get("ave") is not None
-            self.vsp.depths(
-                ave, depths=depths, dep_filter=dep_filter, eles=eles
-            )
+    # def _misfit(self, *, eles):
+    #     self.vsp.misfit(self.misfit, eles=eles)
 
-    def profiles(self, dep=-200):
-        self.vsp.profiles(dep)
+    # def _vs_depths(self, *, eles, **params):
+    #     depths = params.get("depths")
+    #     dep_filter = params.get("dep_filter")
+    #     if any([depths, dep_filter is not None]):
+    #         ave = params.get("ave") is not None
+    #         self.vsp.depths(
+    #             ave, depths=depths, dep_filter=dep_filter, eles=eles
+    #         )
+
+    # def profiles(self, dep=-200):
+    #     self.vsp.profiles(dep)
 
     # def area(self, *args):
     #     self._mkdir("area_figs")
@@ -139,28 +144,30 @@ class TomoPainter:
     #     else:
     #         raise NotImplementedError(f"Cannot identify {idt}")
 
-    def initialize(self, *, lab_range=None):
-        moho_range = [self.moho["moho"].min(), self.moho["moho"].max()]
-        lab_range = lab_range or [-moho_range[1] - 10, -200]
-        calc_lab(self.vs, self.moho, self.mlf, lab_range)
-        # make hull of stas in the area
-        area_hull_files(self.region, outdir=self.txt)
+    # # TODO
+    # def initialize(self, *, lab_range=None):
+    #     moho_range = [self.moho["moho"].min(), self.moho["moho"].max()]
+    #     lab_range = lab_range or [-moho_range[1] - 10, -200]
+    #     calc_lab(self.vs, self.moho, self.mlf, lab_range)
+    #     # make hull of stas in the area
+    #     area_hull_files(self.region, outdir=self.txt)
 
-    def print_info(self, *, misfit_limit=0.5, span=None):
-        # filter grid where misfit > limit
-        misfit_limit = self.misfit[self.misfit["misfit"] > misfit_limit]
-        ic(misfit_limit)
-        moho_range = [self.moho["moho"].min(), self.moho["moho"].max()]
-        ic(moho_range)
-        vs_crust = self.vs[self.vs["z"] > moho_range[1]]
-        ic(vs_crust["v"].mean())
-        if span is not None:
-            vs_mantle = self.vs[self.vs["z"] < moho_range[0]]
-            for z in span:
-                pace = [moho_range[0], -abs(z)]
-                vs_range = vs_mantle[vs_mantle["z"] > pace[1]]
-                vs_ave = vs_range["v"].mean()
-                ic(pace, vs_ave)
+    # # TODO
+    # def print_info(self, *, misfit_limit=0.5, span=None):
+    #     # filter grid where misfit > limit
+    #     misfit_limit = self.misfit[self.misfit["misfit"] > misfit_limit]
+    #     ic(misfit_limit)
+    #     moho_range = [self.moho["moho"].min(), self.moho["moho"].max()]
+    #     ic(moho_range)
+    #     vs_crust = self.vs[self.vs["z"] > moho_range[1]]
+    #     ic(vs_crust["v"].mean())
+    #     if span is not None:
+    #         vs_mantle = self.vs[self.vs["z"] < moho_range[0]]
+    #         for z in span:
+    #             pace = [moho_range[0], -abs(z)]
+    #             vs_range = vs_mantle[vs_mantle["z"] > pace[1]]
+    #             vs_ave = vs_range["v"].mean()
+    #             ic(pace, vs_ave)
 
     # def _mkdir(self, *args):
     #     for target in args:

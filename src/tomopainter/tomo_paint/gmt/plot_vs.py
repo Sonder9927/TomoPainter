@@ -12,7 +12,7 @@ from .panel import vpanel_clip_data, vpanel_makecpt
 
 # plot v plane
 def plot_vs_vpanel(
-    vs, *, idt, moho, line, path, hregion, dep, fname, lab=None, ave=False
+    vs, *, idt, moho, line, path, hregion, dep, fname, lab, ave
 ):
     """
     gmt plot vplane of vs contain abso and ave.
@@ -27,7 +27,7 @@ def plot_vs_vpanel(
 
     # make cpt files
     cpts = [f"temp/{c}" for c in ["crust.cpt", "lithos.cpt", "Vave.cpt"]]
-    vpanel_makecpt(*cpts)
+    vpanel_makecpt(dep, *cpts)
 
     # vs grid
     grid = vs[[idt, "z", "v"]]
@@ -54,7 +54,28 @@ def plot_vs_vpanel(
     gmt_plot_vs_vpanel(topo, tomos, lregion, borders, line, title, fname, ave)
 
 
-def plot_vs_hpanel(grd, region, fname, *, eles, ave):
+def plot_vs_hpanel(grd, region, fname, ave):
+    """
+    gmt plot hplane of vs
+    """
+    # topo file
+    topo = make_topos("ETOPO1", region)
+
+    # make cpt file
+    if ave:
+        cptfile = makecpt([-5, 5, 0.1], cmap="jet", reverse=True)
+    else:
+        # series = [2.5, 5.5, 0.1]
+        grid = pygmt.grd2xyz(grd)
+        cptfile = makecpt(series(grid, method=2), cmap="jet", reverse=True)
+
+    tomo = {"grid": grd, "cmap": cptfile}
+
+    # gmt plot hplane
+    gmt_plot_vs_hpanel(topo, tomo, fname)
+
+
+def old_plot_vs_hpanel(grd, region, fname, *, eles, ave):
     """
     gmt plot hplane of vs
     """
@@ -131,7 +152,47 @@ def gmt_plot_vs_vpanel(topo, tomos, lregion, borders, line, title, fn, ave):
     fig.savefig(fn)
 
 
-def gmt_plot_vs_hpanel(topo, tomo, fname, eles):
+def gmt_plot_vs_hpanel(topo, tomo, fname):
+    # define figure configuration
+    fig = pygmt.Figure()
+    pygmt.config(
+        MAP_FRAME_TYPE="plain",
+        # MAP_TITLE_OFFSET="0.25p",
+        # MAP_DEGREE_SYMBOL="none",
+        MAP_FRAME_WIDTH="0.1c",
+        FONT_ANNOT_PRIMARY="10p,Times-Roman",
+        FONT_TITLE="13p,Times-Roman",
+    )
+
+    eles = {"tect": 0, "clip": True}
+    text = Path(fname).stem.split("_")[-2]
+    fig = fig_tomos(fig, topo, [tomo], **eles)
+    fig.text(
+        x=topo["region"][0],
+        y=topo["region"][-1],
+        fill="white",
+        justify="LT",
+        font="9p",
+        text=text,
+        offset="j0.1",
+    )
+    # fig.colorbar(cmap=cpt, position="jBC+w5c/0.3c+o0i/-1c+h+m", frame="a2f4")
+    fig.colorbar(cmap=tomo["cmap"], frame=["a", "y"])
+    # plot colorbar
+    # fig.colorbar(
+    #     cmap=cpt, position="jMR+v+w10c/0.3c+o-1.5c/0c+m", frame="xa0.2f0.2"
+    # )
+    # fig.colorbar(
+    #     cmap=cpt, position="jTC+w10c/0.3c+o0i/-4c+h", frame="xa0.2f0.2"
+    # )
+    # fig.colorbar(
+    #     cmap=cpt, position="jML+w10c/0.3c+o-1.5i/0i+v", frame="xa0.2f0.2"
+    # )
+
+    fig.savefig(fname)
+
+
+def old_gmt_plot_vs_hpanel(topo, tomo, fname, eles):
     # define figure configuration
     fig = pygmt.Figure()
     pygmt.config(

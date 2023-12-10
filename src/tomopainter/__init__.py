@@ -10,7 +10,8 @@
 #     "AreaPainter",
 #     "PhasePainter",
 # ]
+from tomopainter.rose import DataQueryer
 from tomopainter.tomo_paint import TomoPainter
 from tomopainter.tomo_show import make_ppt
 
-__all__ = ["TomoPainter", "make_ppt"]
+__all__ = ["TomoPainter", "make_ppt", "DataQueryer"]
