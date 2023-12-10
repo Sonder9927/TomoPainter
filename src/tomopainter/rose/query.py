@@ -196,7 +196,7 @@ def _model_df(gdir: Path, gdf) -> pd.DataFrame:
     po = pd.read_csv(
         gdir / "input_vpvs.lst", delim_whitespace=True, header=None
     )
-    po = tomo_grid(rf, rgn)
+    po = tomo_grid(po, rgn)
 
     # merge mcmc misfit & moho
     mc = pd.read_csv(gdir / "mcmc_misfit_moho.csv")
@@ -334,7 +334,7 @@ def xyz_ave(df):
 
 
 def calc_lab(vs, limits=None):
-    limits = limits or [50, 200]
+    limits = limits or [54, 200]
     df = vs[(vs["depth"] > limits[0]) & (vs["depth"] < limits[1])]
     lab_df = df.groupby("id").apply(_max_nagative_gradient)
     lab_df.dropna().reset_index(drop=True)

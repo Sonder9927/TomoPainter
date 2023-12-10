@@ -3,31 +3,45 @@ from tomopainter.rose import path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from tomopainter.rose.query import DataQueryer
 
 from .gmt import (
     plot_area_map,
     plot_evt_sites,
     plot_rays,
     plot_model,
+    plot_misfit,
 )
 
 
 class ModelPainter:
-    def __init__(self, queryer, region) -> None:
+    def __init__(self, queryer: DataQueryer, region) -> None:
         self.queryer = queryer
-        self.regions = [[110, 125, 25, 40], region]
-        self.figs = Path("images/area_figs")
-        self.pes = pd.read_csv("data/per_evt_sta.csv")
-        self.idts = [
-            "area",
-            "sedthk",
-            "rf_moho",
-            "mc_misfit",
-            "mc_moho",
-            "sites",
-            "rays",
-            "pes",
-        ]
+        self.region = region
+        self.figs = path.mkdir("images/model_figs")
+        self.idts = ["area", "model", "sites", "rays", "pes"]
+
+    def paint(self, table, pars):
+        seriesby = {
+            "sedthk": [0, 2, 0.1],
+            "rf_moho": [-15, 15, 0.1],
+            "poisson": [-5, 5, 0.1],
+            "mc_moho": [-15, 15, 0.1],
+            "mc_misfit": [0, 1, 0.01],
+        }
+        idts = pars.get("idts") or seriesby.keys()
+        for idt in idts:
+            series = seriesby[idt]
+            print(idt, series)
+            if "misfit" in idt:
+                df = self.queryer.query(table, usecols=[idt])
+                plot_misfit(df, self.region, series, self.figs / f"{idt}.png")
+            elif idt == "sedthk":
+                df = self.queryer.query(table, usecols=[idt])
+                plot_model(df, self.region, series, self.figs / f"{idt}.png")
+            else:
+                df = self.queryer.query(table, usecols=[idt], ave=True)
+                plot_model(df, self.region, series, self.figs / f"{idt}.png")
 
 
 class AreaPainter:
