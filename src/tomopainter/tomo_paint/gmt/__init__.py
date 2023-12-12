@@ -2,7 +2,6 @@ from .gmt_make_data import area_clip, make_topos, tomo_grid
 from .plot_area import (
     plot_area_map,
     plot_evt_sites,
-    plot_misfit,
     plot_model,
     plot_rays,
 )
@@ -20,7 +19,6 @@ __all__ = [
     "area_clip",
     "make_topos",
     "plot_dispersion_curve",
-    "plot_misfit",
     "plot_vs_vpanel",
     "plot_vs_hpanel",
     "plot_area_map",

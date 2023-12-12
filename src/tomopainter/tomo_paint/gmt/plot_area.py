@@ -18,28 +18,28 @@ def plot_area_map(regions, fig_name):
     gmt_fig_area(vicinity, area, fig_name)
 
 
-def plot_model(df, region, series, fn):
+def plot_model(df, region, cpt, fn):
     """plot model by idt with ave"""
     # topo file
     topo = make_topos("ETOPO1", region)
     tomo = {
         "grid": "temp/tomo.grd",
-        "cmap": makecpt(series, cmap="jet", reverse=True),
+        "cmap": makecpt(cpt["series"], cmap=cpt["cmap"], reverse=True),
     }
     tomo_grid(df, region, tomo["grid"])
     # gmt plot
     _gmt_fig_model(topo, tomo, fn)
 
 
-def plot_misfit(df, region, series, fig_name: Path) -> None:
-    """plot misfit"""
-    topo = make_topos("ETOPO1", region)
-    tomo = {
-        "grid": "temp/tomo.grd",
-        "cmap": makecpt(series, cmap="hot", reverse=True),
-    }
-    tomo_grid(df, region, tomo["grid"])
-    gmt_fig_misfit(topo, tomo, fig_name)
+# def plot_misfit(df, region, series, fig_name: Path) -> None:
+#     """plot misfit"""
+#     topo = make_topos("ETOPO1", region)
+#     tomo = {
+#         "grid": "temp/tomo.grd",
+#         "cmap": makecpt(series, cmap="hot", reverse=True),
+#     }
+#     tomo_grid(df, region, tomo["grid"])
+#     gmt_fig_misfit(topo, tomo, fig_name)
 
 
 def _gmt_fig_model(topo, tomo, fn):

@@ -4,7 +4,7 @@ from pathlib import Path
 from icecream import ic
 import pandas as pd
 
-from .area import ModelPainter
+from .area import AreaPainter
 from .dispersion import gmt_plot_dispersion_curves as plot_dc
 from tomopainter.rose import area_hull_files, calc_lab, DataQueryer, path
 from .phase import PhasePainter
@@ -18,7 +18,7 @@ class TomoPainter:
         cates = ["model", "period", "depth"]
         painters = [
             p(queryer, self.region)
-            for p in [ModelPainter, PhasePainter, SwavePainter]
+            for p in [AreaPainter, PhasePainter, SwavePainter]
         ]
         self.painters = dict(zip(cates, painters))
         self.idts = dict(zip(cates, [p.idts for p in painters]))

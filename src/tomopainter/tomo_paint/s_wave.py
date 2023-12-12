@@ -2,7 +2,7 @@ from tomopainter.rose import GridVs, DataQueryer, path
 from tqdm import tqdm
 from pathlib import Path
 
-from .gmt import plot_vs_hpanel, plot_vs_vpanel, plot_misfit
+from .gmt import plot_vs_hpanel, plot_vs_vpanel
 
 
 class SwavePainter:

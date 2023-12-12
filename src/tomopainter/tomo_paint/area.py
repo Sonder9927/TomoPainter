@@ -10,68 +10,93 @@ from .gmt import (
     plot_evt_sites,
     plot_rays,
     plot_model,
-    plot_misfit,
 )
 
 
-class ModelPainter:
+class AreaPainter:
     def __init__(self, queryer: DataQueryer, region) -> None:
         self.queryer = queryer
         self.region = region
-        self.figs = path.mkdir("images/model_figs")
-        self.idts = ["area", "model", "sites", "rays", "pes"]
-
-    def paint(self, table, pars):
-        seriesby = {
-            "sedthk": [0, 2, 0.1],
-            "rf_moho": [-15, 15, 0.1],
-            "poisson": [-5, 5, 0.1],
-            "mc_moho": [-15, 15, 0.1],
-            "mc_misfit": [0, 1, 0.01],
+        self.afigs = path.mkdir("images/area_figs")
+        self.mfigs = path.mkdir("images/model_figs")
+        self.idts = {
+            "area": self._area,
+            "model": self._model,
+            "sites": self._sites,
+            "rays": self._rays,
+            "per_evt": self._per_evt,
         }
-        idts = pars.get("idts") or seriesby.keys()
-        for idt in idts:
-            series = seriesby[idt]
-            print(idt, series)
-            if "misfit" in idt:
-                df = self.queryer.query(table, usecols=[idt])
-                plot_misfit(df, self.region, series, self.figs / f"{idt}.png")
-            elif idt == "sedthk":
-                df = self.queryer.query(table, usecols=[idt])
-                plot_model(df, self.region, series, self.figs / f"{idt}.png")
-            else:
-                df = self.queryer.query(table, usecols=[idt], ave=True)
-                plot_model(df, self.region, series, self.figs / f"{idt}.png")
 
+    def _area(self, vici_region=None):
+        vici_region = vici_region or [110, 125, 25, 40]
+        regions = [vici_region, self.region]
+        plot_area_map(regions, self.afigs / "area.png")
 
-class AreaPainter:
-    def __init__(self, region, pesf) -> None:
-        self.regions = [[110, 125, 25, 40], region]
-        self.figs = Path("images/area_figs")
-        self.pes = pd.read_csv(pesf)
-
-    def area_map(self):
-        plot_area_map(self.regions, self._fig("area.png"))
-
-    def model(self):
-        plot_model(self.regions[1], self._fig("model.png"))
-
-    def per_evt(self):
+    def _per_evt(self):
+        return
         data = self.pes.groupby("per").size().to_dict()
-        _plot_per_evt(data, self._fig("perNum_vel.png"))
+        _plot_per_evt(data, self.afigs / "perNum_vel.png")
 
-    def sites(self):
+    def _sites(self):
+        return
         sites = self.pes[["evt"]].drop_duplicates()
-        plot_evt_sites(sites, self.regions[1], self._fig("evt_sites.png"))
+        plot_evt_sites(sites, self.region, self._fig("evt_sites.png"))
 
-    def rays(self):
+    def _rays(self):
+        return
         rays = self.pes[["evt", "sta"]].drop_duplicates()
         plot_rays(self.regions, rays, self._fig("rays_cover.png"))
 
-    def _fig(self, fn) -> str:
-        if not self.figs.exists():
-            self.figs.mkdir(parents=True)
-        return str(self.figs / fn)
+    def paint(self, idt, pars=None):
+        self.idts[idt](pars)
+
+    def _model(self, pars):
+        seriesby = {
+            "sedthk": [0, 2, 0.1],
+            "rf_moho": [27, 38, 0.1],
+            "poisson": [1.65, 1.85, 0.01],
+            "mc_moho": [27, 38, 0.1],
+            "mc_misfit": [0, 1, 0.01],
+        }
+        idts = pars.get("idts") or seriesby.keys()
+        table = "model"
+        for idt in idts:
+            cpt = {
+                "series": seriesby[idt],
+                "cmap": "hot" if "misfit" in idt else "jet",
+            }
+            df = self.queryer.query(table, usecols=[idt])
+            plot_model(df, self.region, cpt, self.mfigs / f"{idt}.png")
+
+
+# class AreaPainter:
+#     def __init__(self, region, pesf) -> None:
+#         self.regions = [[110, 125, 25, 40], region]
+#         self.figs = Path("images/area_figs")
+#         self.pes = pd.read_csv(pesf)
+
+#     def area_map(self):
+#         plot_area_map(self.regions, self._fig("area.png"))
+
+#     def model(self):
+#         plot_model(self.regions[1], self._fig("model.png"))
+
+#     def per_evt(self):
+#         data = self.pes.groupby("per").size().to_dict()
+#         _plot_per_evt(data, self._fig("perNum_vel.png"))
+
+#     def sites(self):
+#         sites = self.pes[["evt"]].drop_duplicates()
+#         plot_evt_sites(sites, self.regions[1], self._fig("evt_sites.png"))
+
+#     def rays(self):
+#         rays = self.pes[["evt", "sta"]].drop_duplicates()
+#         plot_rays(self.regions, rays, self._fig("rays_cover.png"))
+
+#     def _fig(self, fn) -> str:
+#         if not self.figs.exists():
+#             self.figs.mkdir(parents=True)
+#         return str(self.figs / fn)
 
 
 def gmt_plot_area(region, pesf, onlymap=True):
